@@ -31,6 +31,10 @@ DPPGlobalAnalysis::run(Module &M, AnalysisManager<Module> &MAM) {
     if (!F.isDeclaration()) // Skip undefined functions
       Result.emplace(&F, FAM.getResult<DPPLocalAnalysis>(F));
 
+  // TODO: Should also look for aliases!
+  // for (auto &A : M.aliases())
+  //  if (isa<Function>(A.getBaseObject()))
+
   return Result;
 }
 
