@@ -8,7 +8,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/Analysis/DPP/DPP.h"
 #include "llvm/Analysis/DPP/DPPLocalAnalysis.h"
+#include "llvm/IR/Instructions.h"
 
 #define DEBUG_TYPE "DPPLocalAnalysis"
 
@@ -16,24 +18,34 @@ using namespace llvm;
 using namespace DPP;
 
 AnalysisKey DPPLocalAnalysis::Key;
-//char DPPLocalAnalysisWrapper::ID = 0;
 
 DPPLocalAnalysis::Result DPPLocalAnalysis::run(Function &F,
                                                AnalysisManager<Function> &AM) {
   LLVM_DEBUG(dbgs() << "DPPLocalAnalysis::run entered\n");
-  // Dependencies:
-  // AM.getResult<ScalarEvolutionAnalysis>(F);
-  return runOnFunction(F);
-}
+  Result Results;
 
-DPPLocalAnalysis::Result DPPLocalAnalysis::runOnFunction(Function &F) {
-  return DEBUG_TYPE " not implemented";
+  // Add new rules here
+  DPPLocalRule *Rules[]{
+      createLocalRule6(this)
+  };
+
+  for (auto *Rule : Rules) {
+    auto Result = Rule->runOnFunction(F, AM);
+    Results.try_emplace(Result->getType(), Result);
+    delete Rule;
+  }
+
+  return Results;
 }
 
 PreservedAnalyses
 DPPLocalPrinterPass::run(Function &F, AnalysisManager<Function> &AM) {
   OS << "Data Pointer Prioritization Local Analysis\n";
-  OS << F.getName() << " - " << AM.getResult<DPPLocalAnalysis>(F) << "\n";
+  OS << F.getName() << ":\n";
+  auto Results = AM.getResult<DPPLocalAnalysis>(F);
+  for (auto &Result : Results) {
+    OS << Result.getSecond();
+  }
   return PreservedAnalyses::all();
 }
 

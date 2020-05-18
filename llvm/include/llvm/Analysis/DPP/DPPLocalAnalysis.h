@@ -11,6 +11,7 @@
 #ifndef LLVM_ANALYSIS_DPP_DPPLOCALANALYSIS_H
 #define LLVM_ANALYSIS_DPP_DPPLOCALANALYSIS_H
 
+#include "llvm/Analysis/DPP/DPP.h"
 #include "llvm/IR/PassManager.h"
 
 using namespace llvm;
@@ -21,11 +22,12 @@ class DPPLocalAnalysis : public AnalysisInfoMixin<DPPLocalAnalysis> {
   friend AnalysisInfoMixin<DPPLocalAnalysis>;
 
 public:
-  using Result = StringRef;
+  using Result = DPPResultMap;
   static AnalysisKey Key;
 
   Result run(Function &F, AnalysisManager<Function> &AM);
-  Result runOnFunction(Function &F);
+
+private:
 };
 
 class DPPLocalPrinterPass : public PassInfoMixin<DPPLocalPrinterPass> {

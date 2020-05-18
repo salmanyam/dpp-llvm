@@ -11,6 +11,7 @@
 #ifndef LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
 #define LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
 
+#include "llvm/Analysis/DPP/DPP.h"
 #include "llvm/IR/PassManager.h"
 
 using namespace llvm;
@@ -22,7 +23,7 @@ class DPPGlobalAnalysis : public AnalysisInfoMixin<DPPGlobalAnalysis> {
   static AnalysisKey Key;
 
 public:
-  using Result = std::map<const GlobalValue *, const StringRef &>;
+  using Result = DPPResultMap;
 
   Result run(Module &M, AnalysisManager<Module> &AM);
 };

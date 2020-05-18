@@ -2,9 +2,10 @@
 ; RUN: opt -S -passes="print-dpp-global" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,GLOBAL
 
 ; LOCAL: Data Pointer Prioritization Local Analysis
+; LOCAL-LABEL: func
+; LOCAL-LABLE: main
 ; GLOBAL: Data Pointer Prioritization Global Analysis
-; CHECK-LABEL: func
-; CHECK-LABLE: main
+; GLOBAL: not implemented
 
 
 ; clang -Xclang -disable-lifetime-markers -fno-unroll-loops -O2 -emit-llvm -c -S

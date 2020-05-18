@@ -16,6 +16,7 @@ endif()
 add_llvm_component_library(LLVMAnalysis
   DPP/DPPLocalAnalysis.cpp
   DPP/DPPGlobalAnalysis.cpp
+  DPP/DPPRule6.cpp
   AliasAnalysis.cpp
   AliasAnalysisEvaluator.cpp
   AliasAnalysisSummary.cpp

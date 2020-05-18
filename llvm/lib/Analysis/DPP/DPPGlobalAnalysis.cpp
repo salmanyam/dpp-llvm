@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/Analysis/DPP/DPP.h"
 #include "llvm/Analysis/DPP/DPPGlobalAnalysis.h"
-#include "llvm/Analysis/DPP/DPPLocalAnalysis.h"
 
 #define DEBUG_TYPE "DPPGlobalAnalysis"
 
@@ -23,26 +23,29 @@ DPPGlobalAnalysis::run(Module &M, AnalysisManager<Module> &MAM) {
 
   LLVM_DEBUG(dbgs() << "DPPGlobalAnalysis::run starting up...\n");
 
-  auto &FAM = MAM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
+  Result Results;
 
-  Result Result;
+  // Add new rules here
+  DPPGlobalRule *Rules[]{
+      createGlobalRule6(this)
+  };
 
-  for (auto &F : M)
-    if (!F.isDeclaration()) // Skip undefined functions
-      Result.emplace(&F, FAM.getResult<DPPLocalAnalysis>(F));
+  for (auto *Rule : Rules) {
+    auto Result = Rule->runOnModule(M, MAM);
+    Results.try_emplace(Result->getType(), Result);
+    delete Rule;
+  }
 
-  // TODO: Should also look for aliases!
-  // for (auto &A : M.aliases())
-  //  if (isa<Function>(A.getBaseObject()))
-
-  return Result;
+  return Results;
 }
 
 
 PreservedAnalyses
 DPPGlobalPrinterPass::run(Module &M, AnalysisManager<Module> &AM) {
   OS << "Data Pointer Prioritization Global Analysis\n";
-  for (auto &R : AM.getResult<DPPGlobalAnalysis>(M))
-    OS << R.first->getName() << " - " << R.second << "\n";
+  auto Results = AM.getResult<DPPGlobalAnalysis>(M);
+  for (auto &Result : Results) {
+    OS << Result.getSecond();
+  }
   return PreservedAnalyses::all();
 }

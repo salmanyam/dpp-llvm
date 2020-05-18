@@ -2,9 +2,8 @@
 ; RUN: opt -S -passes="print-dpp-global" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,GLOBAL
 
 ; LOCAL: Data Pointer Prioritization Local Analysis
+; LOCAL-LABEL: hello_world
 ; GLOBAL: Data Pointer Prioritization Global Analysis
-; CHECK-LABEL: hello_world
-; CHECK-SAME: not implemented
 
 @str = constant [12 x i8] c"Hello World\00", align 1
 
