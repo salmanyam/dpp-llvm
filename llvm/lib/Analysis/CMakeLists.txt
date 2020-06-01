@@ -14,7 +14,7 @@ if (DEFINED LLVM_HAVE_TF_AOT OR DEFINED LLVM_HAVE_TF_API)
 endif()
 
 add_llvm_component_library(LLVMAnalysis
-  DPP/DPPLocalAnalysis.cpp
+  DPP/DPPRule6.cpp
   DPP/DPPGlobalAnalysis.cpp
   DPP/DPPRule6.cpp
   AliasAnalysis.cpp

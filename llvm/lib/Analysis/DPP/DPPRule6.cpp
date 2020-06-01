@@ -1,64 +1,25 @@
+//==- DPPRule6.cpp ---------------------------------------------------------==//
 //
-// Created by ishkamiel on 18/05/2020.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
+//===----------------------------------------------------------------------===//
+//
+//===----------------------------------------------------------------------===//
 
-#include "llvm/Analysis/DPP/DPP.h"
+#include "llvm/Analysis/DPP/DPPRule6.h"
+#include "llvm/IR/Instructions.h"
+
+#define DEBUG_TYPE "DPPRule6"
 
 using namespace llvm;
-using namespace DPP;
+using namespace llvm::DPP;
 
-namespace {
+const char DPPRule6L::RuleName[] = "DPPRule6L";
+AnalysisKey DPPRule6L::Key;
 
-class Rule6Result : public DPPResultImpl<Rule6> {
-public:
-  Rule6Result() {}
-  virtual raw_ostream &print(raw_ostream &OS) const override {
-    OS << "Rule6 not implemented\n";
-    return OS;
-  }
-};
-
-class Rule6Local : public DPPLocalRule {
-public:
-  Rule6Local() = delete;
-  Rule6Local(DPPLocalAnalysis *DPPLA) : DPPLocalRule(DPPLA) {}
-
-  virtual std::shared_ptr<DPPLocalResult> runOnFunction(
-      Function &F, AnalysisManager<Function> &FAM) override;
-};
-
-std::shared_ptr<DPPLocalResult> Rule6Local::runOnFunction(Function &F,
-                                          AnalysisManager<Function> &FAM) {
-  return std::make_shared<Rule6Result>();
+DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
+  return DPPRule6L::Result("not implemented");
 }
 
-
-class Rule6Global : public DPPGlobalRule {
-public:
-  Rule6Global() = delete;
-  Rule6Global(DPPGlobalAnalysis *DPPGA) : DPPGlobalRule(DPPGA) {}
-
-  virtual std::shared_ptr<DPPLocalResult> runOnModule(
-      llvm::Module &M, llvm::AnalysisManager<llvm::Module> &MAM) override;
-};
-
-std::shared_ptr<DPPLocalResult>
-Rule6Global::runOnModule(Module &M, AnalysisManager<llvm::Module> &MAM) {
-  for (auto &F : M) {
-    if (F.isDeclaration()) // Skip undefined functions
-      continue;
-    // TODO: Do something here...
-    // FAM.getResult<DPPLocalAnalysis>(F));
-  }
-  return std::make_shared<Rule6Result>();
-}
-
-} // namespace
-
-DPPLocalRule *DPP::createLocalRule6(DPPLocalAnalysis *DPPLA) {
-  return new Rule6Local(DPPLA);
-}
-
-DPPGlobalRule *DPP::createGlobalRule6(DPPGlobalAnalysis *DPPGA) {
-  return new Rule6Global(DPPGA);
-}

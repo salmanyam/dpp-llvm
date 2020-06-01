@@ -16,6 +16,8 @@
 
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Analysis/DPP/DPP.h"
+#include "llvm/Analysis/DPP/DPPGlobalAnalysis.h"
 #include "llvm/Analysis/AliasAnalysisEvaluator.h"
 #include "llvm/Analysis/AliasSetTracker.h"
 #include "llvm/Analysis/AssumptionCache.h"
@@ -34,8 +36,6 @@
 #include "llvm/Analysis/DependenceAnalysis.h"
 #include "llvm/Analysis/DominanceFrontier.h"
 #include "llvm/Analysis/FunctionPropertiesAnalysis.h"
-#include "llvm/Analysis/DPP/DPPGlobalAnalysis.h"
-#include "llvm/Analysis/DPP/DPPLocalAnalysis.h"
 #include "llvm/Analysis/GlobalsModRef.h"
 #include "llvm/Analysis/IRSimilarityIdentifier.h"
 #include "llvm/Analysis/IVUsers.h"

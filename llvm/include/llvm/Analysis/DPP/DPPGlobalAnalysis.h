@@ -1,44 +1,45 @@
-//==- DPPGlobalAnalysis.h --------------------------------------------------==//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Created by ishkamiel on 09/06/2020.
 //
-//===----------------------------------------------------------------------===//
-//
-//===----------------------------------------------------------------------===//
 
-#ifndef LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
-#define LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
+#ifndef LLVM_DPPGLOBALANALYSIS_H
+#define LLVM_DPPGLOBALANALYSIS_H
 
 #include "llvm/Analysis/DPP/DPP.h"
-#include "llvm/IR/PassManager.h"
 
-using namespace llvm;
-
+namespace llvm {
 namespace DPP {
+
+class DPPGlobalResult {
+private:
+  StringRef data;
+public:
+  DPPGlobalResult() = delete;
+  DPPGlobalResult(StringRef data) : data(data) {}
+
+  raw_ostream &print(raw_ostream &OS) const {
+    OS << data;
+    return OS;
+  }
+};
 
 class DPPGlobalAnalysis : public AnalysisInfoMixin<DPPGlobalAnalysis> {
   friend AnalysisInfoMixin<DPPGlobalAnalysis>;
   static AnalysisKey Key;
-
 public:
-  using Result = DPPResultMap;
-
+  using Result = DPPGlobalResult;
   Result run(Module &M, AnalysisManager<Module> &AM);
 };
-
 
 class DPPGlobalPrinterPass : public PassInfoMixin<DPPGlobalPrinterPass> {
 private:
   raw_ostream &OS;
-
 public:
   explicit DPPGlobalPrinterPass(raw_ostream &OS) : OS(OS) {}
-
   PreservedAnalyses run(Module &M, AnalysisManager<Module> &AM);
 };
 
 } // namespace DPP
+} // namespace llvm
 
-#endif // LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
+#endif // LLVM_DPPGLOBALANALYSIS_H

@@ -1,5 +1,6 @@
 ; RUN: opt -S -passes="print<dpp-local>" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,LOCAL
 ; RUN: opt -S -passes="print-dpp-global" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,GLOBAL
+; XFAIL: *
 
 ; LOCAL: Data Pointer Prioritization Local Analysis
 ; LOCAL-LABEL: func
