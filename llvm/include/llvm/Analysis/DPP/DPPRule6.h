@@ -6,6 +6,7 @@
 #define LLVM_DPPRULE6_H
 
 #include "llvm/Analysis/DPP/DPPRule.h"
+#include "llvm/Analysis/DPP/TypeVisitor.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
 
@@ -26,16 +27,22 @@ public:
   Result run(Function &F, AnalysisManager<Function> &AM);
 };
 
+
 class DPPRule6LResult : public DPPResult<DPPRule6L> {
+  friend DPPRule6L;
+public:
+  using BadLocalsMap = DenseMap<AllocaInst *, StringRef>;
+
 private:
-  StringRef data;
+  BadLocalsMap BadLocals;
 
 public:
-  DPPRule6LResult() = delete;
-  DPPRule6LResult(StringRef data) : data(data) {}
+  DPPRule6LResult() {}
 
   raw_ostream &print(raw_ostream &OS) const {
-    OS << data;
+    for (auto Bad : BadLocals) {
+      OS << *Bad.getFirst() << " (" << Bad.getSecond() << ")\n";
+    }
     return OS;
   }
 };

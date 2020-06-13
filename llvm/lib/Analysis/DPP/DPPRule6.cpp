@@ -9,7 +9,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Analysis/DPP/DPPRule6.h"
+#include "llvm/Analysis/DPP/TypeVisitor.h"
+#include "llvm/IR/InstVisitor.h"
 #include "llvm/IR/Instructions.h"
+#include <queue>
 
 #define DEBUG_TYPE "DPPRule6"
 
@@ -19,7 +22,61 @@ using namespace llvm::DPP;
 const char DPPRule6L::RuleName[] = "DPPRule6L";
 AnalysisKey DPPRule6L::Key;
 
+namespace {
+
+using BadLocalsMap = DPPRule6LResult::BadLocalsMap;
+
+/// Define some common Rule6 Stuff here
+struct TypeChecker : public TypeVisitor<TypeChecker> {
+  bool FoundBuffer = false;
+  bool FoundVulnerablePointer = false;
+  bool visitPointerType(const PointerType *Ty);
+  bool visitArrayType(const ArrayType *Ty);
+  bool visitVectorType(const VectorType *Ty);
+};
+
+/// Visitor to look through all Alloca instruction
+struct LocalsVisitor : public InstVisitor<LocalsVisitor> {
+  BadLocalsMap *BadLocals;
+  LocalsVisitor(BadLocalsMap *BadLocals) : BadLocals(BadLocals) {}
+  void visitAllocaInst(AllocaInst &AI);
+};
+
+} // namespace
+
+bool TypeChecker::visitPointerType(const PointerType *Ty) {
+  (void) Ty;
+  // Pointer is vulnerable if we've seen a previous buffer.
+  FoundVulnerablePointer = FoundBuffer;
+  // We can stop if we already found vulnerability.
+  return FoundVulnerablePointer;
+}
+bool TypeChecker::visitArrayType(const ArrayType *Ty) {
+  (void) Ty;
+  // Assume that the buffer might corrupt its own elements.
+  return FoundBuffer = true;
+}
+bool TypeChecker::visitVectorType(const VectorType *Ty) {
+  (void) Ty;
+  // Assume that the buffer might corrupt its own elements.
+  return FoundBuffer = true;
+}
+
+void LocalsVisitor::visitAllocaInst(AllocaInst &AI) {
+  TypeChecker Checker {};
+  Checker.visit(AI.getAllocatedType());
+
+  if (Checker.FoundVulnerablePointer) {
+    BadLocals->try_emplace(&AI, "pointer in vulnerable structure");
+  }
+}
+
 DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
-  return DPPRule6L::Result("not implemented");
+  Result Result {};
+
+  LocalsVisitor Visitor(&Result.BadLocals);
+  Visitor.visit(F);
+
+  return Result;
 }
 
