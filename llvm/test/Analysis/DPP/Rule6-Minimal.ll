@@ -1,13 +1,11 @@
-; RUN: opt -S -passes="print<dpp-local>" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,LOCAL
+; RUN: opt -S -passes="print<dpp-local-rule6>" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,LOCAL
 ; RUN: opt -S -passes="print-dpp-global" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,GLOBAL
-; XFAIL: *
 
-; LOCAL: Data Pointer Prioritization Local Analysis
+; LOCAL: DPPRule6L
 ; LOCAL-LABEL: func
 ; LOCAL-LABLE: main
-; GLOBAL: Data Pointer Prioritization Global Analysis
+; GLOBAL: Data Pointer Prioritization Analysis
 ; GLOBAL: not implemented
-
 
 ; clang -Xclang -disable-lifetime-markers -fno-unroll-loops -O2 -emit-llvm -c -S
 
