@@ -44,22 +44,21 @@ struct LocalsVisitor : public InstVisitor<LocalsVisitor> {
 
 } // namespace
 
-bool TypeChecker::visitPointerType(const PointerType *Ty) {
-  (void) Ty;
+bool TypeChecker::visitPointerType(const PointerType *) {
   // Pointer is vulnerable if we've seen a previous buffer.
   FoundVulnerablePointer = FoundBuffer;
   // We can stop if we already found vulnerability.
   return FoundVulnerablePointer;
 }
-bool TypeChecker::visitArrayType(const ArrayType *Ty) {
-  (void) Ty;
+bool TypeChecker::visitArrayType(const ArrayType *) {
   // Assume that the buffer might corrupt its own elements.
-  return FoundBuffer = true;
+  FoundBuffer = true;
+  return FoundBuffer;
 }
-bool TypeChecker::visitVectorType(const VectorType *Ty) {
-  (void) Ty;
+bool TypeChecker::visitVectorType(const VectorType *) {
   // Assume that the buffer might corrupt its own elements.
-  return FoundBuffer = true;
+  FoundBuffer = true;
+  return FoundBuffer
 }
 
 void LocalsVisitor::visitAllocaInst(AllocaInst &AI) {

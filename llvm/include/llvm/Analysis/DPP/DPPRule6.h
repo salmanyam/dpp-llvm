@@ -1,9 +1,15 @@
+//==- DPPRule6.h -----------------------------------------------------------==//
 //
-// Created by ishkamiel on 09/06/2020.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
+//===----------------------------------------------------------------------===//
+//
+//===----------------------------------------------------------------------===//
 
-#ifndef LLVM_DPPRULE6_H
-#define LLVM_DPPRULE6_H
+#ifndef LLVM_ANALYSIS_DPP_DPPRULE6_H
+#define LLVM_ANALYSIS_DPP_DPPRULE6_H
 
 #include "llvm/Analysis/DPP/DPPRule.h"
 #include "llvm/Analysis/DPP/TypeVisitor.h"
@@ -55,4 +61,4 @@ public:
 } // namespace DPP
 } // namespace llvm
 
-#endif // LLVM_DPPRULE6_H
+#endif // LLVM_ANALYSIS_DPP_DPPRULE6_H

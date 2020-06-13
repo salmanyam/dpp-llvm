@@ -1,9 +1,15 @@
+//==- DPPRule.h ------------------------------------------------------------==//
 //
-// Created by ishkamiel on 09/06/2020.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
+//===----------------------------------------------------------------------===//
+//
+//===----------------------------------------------------------------------===//
 
-#ifndef LLVM_DPPRULE_H
-#define LLVM_DPPRULE_H
+#ifndef LLVM_ANALYSIS_DPP_DPPRULE_H
+#define LLVM_ANALYSIS_DPP_DPPRULE_H
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
@@ -46,4 +52,4 @@ public:
 } // namespace DPP
 } // namespace llvm
 
-#endif // LLVM_DPPRULE_H
+#endif // LLVM_ANALYSIS_DPP_DPPRULE_H
