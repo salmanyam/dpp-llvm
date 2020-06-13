@@ -37,8 +37,7 @@ public:
 
   PreservedAnalyses run(Function &F, AnalysisManager<Function> &AM) {
     auto Result = AM.getResult<AnalysisT>(F);
-    OS << Result.getName() << "\n";
-    OS << F.getName() << ":\n";
+    OS << Result.getName() << " result for " << F.getName() << ":\n";
     Result.print(OS);
     return PreservedAnalyses::all();
   }
