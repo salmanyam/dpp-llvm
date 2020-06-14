@@ -35,6 +35,10 @@ struct TypeChecker : public TypeVisitor<TypeChecker> {
   bool visitPointerType(const PointerType *Ty);
   bool visitArrayType(const ArrayType *Ty);
   bool visitVectorType(const VectorType *Ty);
+  void reset() {
+    FoundBuffer = false;
+    FoundVulnerablePointer = false;
+  }
 };
 
 /// Visitor to look through all Alloca instruction
@@ -48,17 +52,20 @@ struct LocalsVisitor : public InstVisitor<LocalsVisitor> {
 
 bool TypeChecker::visitPointerType(const PointerType *) {
   // Pointer is vulnerable if we've seen a previous buffer.
+  LLVM_DEBUG(dbgs() << "TypeChecker: visitPointerType\n");
   FoundVulnerablePointer = FoundBuffer;
   // We can stop if we already found vulnerability.
   return FoundVulnerablePointer;
 }
 bool TypeChecker::visitArrayType(const ArrayType *) {
   // Assume that the buffer might corrupt its own elements.
+  LLVM_DEBUG(dbgs() << "TypeChecker: visitArrayType\n");
   FoundBuffer = true;
   return FoundBuffer;
 }
 bool TypeChecker::visitVectorType(const VectorType *) {
   // Assume that the buffer might corrupt its own elements.
+  LLVM_DEBUG(dbgs() << "TypeChecker: visitVectorType\n");
   FoundBuffer = true;
   return FoundBuffer;
 }
@@ -84,6 +91,24 @@ DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
 DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
   Result Result {};
 
+  // Check if we got iffy global variables
+  TypeChecker Checker {};
+  for (auto &G : M.globals()) {
+    if (G.isDeclaration())
+      continue; // Skip declaration without definition
+    if (G.isConstant())
+      continue; // Skip constants
+
+    LLVM_DEBUG(dbgs() << "DPPRule6G: inspecting GlobalValue of:\n");
+    LLVM_DEBUG(G.getValueType()->dump());
+    Checker.visit(G.getValueType());
+
+    if (Checker.FoundVulnerablePointer) {
+      Result.BadGlobals.try_emplace(&G, "pointer in vulnerable structure");
+    }
+    Checker.reset();
+  }
+
   // Collect the local results into our Result object
   auto &FAM = AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
   for (auto &F : M) {
@@ -107,8 +132,11 @@ raw_ostream &DPPRule6LResult::print(raw_ostream &OS) const {
 
 raw_ostream &DPPRule6GResult::print(raw_ostream &OS) const {
   OS << "Globals:\n";
-  for (auto Global : BadGlobals)
-    OS << *Global.getFirst() << " (" << Global.getSecond() << ")";
+  for (auto G : BadGlobals) {
+    auto *const GV = G.getFirst();
+    OS << "@" << GV->getGlobalIdentifier() << " = " << *GV->getValueType() <<
+       " (" << G.getSecond() << ")\n";
+  }
 
   OS << "Functions:\n";
   for (auto Func : FunctionInfo) {
