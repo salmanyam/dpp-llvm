@@ -50,6 +50,25 @@ public:
   }
 };
 
+template <typename AnalysisT,
+    typename = std::enable_if<std::is_base_of<DPPResult<AnalysisT>,
+        typename AnalysisT::Result>::value, AnalysisT>>
+class DPPGlobalPrinterPass
+    : public PassInfoMixin<DPPGlobalPrinterPass<AnalysisT>> {
+private:
+  raw_ostream &OS;
+
+public:
+  explicit DPPGlobalPrinterPass(raw_ostream &OS) : OS(OS) {}
+
+  PreservedAnalyses run(Module &M, AnalysisManager<Module> &AM) {
+    auto Result = AM.getResult<AnalysisT>(M);
+    OS << Result.getName() << " results:\n";
+    Result.print(OS);
+    return PreservedAnalyses::all();
+  }
+};
+
 } // namespace DPP
 } // namespace llvm
 

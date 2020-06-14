@@ -20,7 +20,9 @@ using namespace llvm;
 using namespace llvm::DPP;
 
 const char DPPRule6L::RuleName[] = "DPPRule6L";
+const char DPPRule6G::RuleName[] = "DPPRule6G";
 AnalysisKey DPPRule6L::Key;
+AnalysisKey DPPRule6G::Key;
 
 namespace {
 
@@ -79,8 +81,30 @@ DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
   return Result;
 }
 
+DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
+  Result Result {};
+
+  return Result;
+}
+
 raw_ostream &DPPRule6LResult::print(raw_ostream &OS) const {
   for (auto Bad : BadLocals)
     OS << *Bad.getFirst() << " (" << Bad.getSecond() << ")\n";
+  return OS;
+}
+
+raw_ostream &DPPRule6GResult::print(raw_ostream &OS) const {
+  OS << "Globals:\n";
+  for (auto Global : BadGlobals)
+    OS << *Global.getFirst() << " (" << Global.getSecond() << ")";
+
+  OS << "Functions:\n";
+  for (auto Func : FunctionInfo) {
+    if (!Func.getSecond()->empty()) {
+      OS << Func.getFirst()->getName() << ":\n";
+      Func.getSecond()->print(OS);
+    }
+  }
+
   return OS;
 }

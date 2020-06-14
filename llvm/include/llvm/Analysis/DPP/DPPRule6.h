@@ -20,6 +20,7 @@ namespace llvm {
 namespace DPP {
 
 class DPPRule6LResult;
+class DPPRule6GResult;
 
 class DPPRule6L : public AnalysisInfoMixin<DPPRule6L> {
   friend AnalysisInfoMixin<DPPRule6L>;
@@ -45,9 +46,39 @@ public:
   raw_ostream &print(raw_ostream &OS) const;
 };
 
+class DPPRule6G : public AnalysisInfoMixin<DPPRule6G> {
+  friend AnalysisInfoMixin<DPPRule6G>;
+public:
+  using Result = DPPRule6GResult;
+
+  static const char RuleName[];
+  static AnalysisKey Key;
+
+  Result run(Module &M, AnalysisManager<Module> &AM);
+};
+
+class DPPRule6GResult : public DPPResult<DPPRule6G> {
+  friend DPPRule6G;
+public:
+  using BadGlobalsMap = DenseMap<GlobalValue *, StringRef>;
+  using FunctionInfoMap= DenseMap<Function *, DPPRule6LResult *>;
+private:
+  BadGlobalsMap BadGlobals;
+  FunctionInfoMap FunctionInfo;
+public:
+  DPPRule6GResult() {}
+  bool empty() { return BadGlobals.empty() && FunctionInfo.empty(); }
+  raw_ostream &print(raw_ostream &OS) const;
+};
+
 class DPPRule6LPrinterPass : public DPPLocalPrinterPass<DPPRule6L> {
 public:
   DPPRule6LPrinterPass(raw_ostream &OS) : DPPLocalPrinterPass(OS) {}
+};
+
+class DPPRule6GPrinterPass : public DPPGlobalPrinterPass<DPPRule6G> {
+public:
+  DPPRule6GPrinterPass(raw_ostream &OS) : DPPGlobalPrinterPass(OS) {}
 };
 
 } // namespace DPP
