@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Analysis/DPP/DPPGlobalAnalysis.h"
+#include "llvm/Analysis/DPP/DPPAnalysis.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "DPPGlobalAnalysis"
@@ -16,19 +16,18 @@
 using namespace llvm;
 using namespace llvm::DPP;
 
-AnalysisKey DPPGlobalAnalysis::Key;
+AnalysisKey DPPAnalysis::Key;
 
-DPPGlobalAnalysis::Result DPPGlobalAnalysis::run(Module &M,
+DPPAnalysis::Result DPPAnalysis::run(Module &M,
                                                  AnalysisManager<Module> &AM) {
   LLVM_DEBUG(dbgs() << "DPPGlobalAnalysis::run starting up...\n");
-  return DPPGlobalAnalysis::Result("not implemented");
+  return DPPAnalysis::Result("not implemented");
 }
 
-PreservedAnalyses
-DPPGlobalPrinterPass::run(Module &M, AnalysisManager<Module> &AM) {
+PreservedAnalyses DPPAnalysisPrinterPass::run(Module &M, AnalysisManager<Module> &AM) {
   OS << "Data Pointer Prioritization Analysis\n";
 
-  auto Results = AM.getResult<DPPGlobalAnalysis>(M);
+  auto Results = AM.getResult<DPPAnalysis>(M);
   Results.print(OS);
 
   return PreservedAnalyses::all();

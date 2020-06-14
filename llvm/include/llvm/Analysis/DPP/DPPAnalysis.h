@@ -1,4 +1,4 @@
-//==- DPPGlobalAnalysis.cpp ------------------------------------------------==//
+//==- DPPAnalysis.cpp ------------------------------------------------------==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -16,12 +16,12 @@
 namespace llvm {
 namespace DPP {
 
-class DPPGlobalResult {
+class DPPAnalysisResult {
 private:
   StringRef data;
 public:
-  DPPGlobalResult() = delete;
-  DPPGlobalResult(StringRef data) : data(data) {}
+  DPPAnalysisResult() = delete;
+  DPPAnalysisResult(StringRef data) : data(data) {}
 
   raw_ostream &print(raw_ostream &OS) const {
     OS << data;
@@ -29,19 +29,19 @@ public:
   }
 };
 
-class DPPGlobalAnalysis : public AnalysisInfoMixin<DPPGlobalAnalysis> {
-  friend AnalysisInfoMixin<DPPGlobalAnalysis>;
+class DPPAnalysis : public AnalysisInfoMixin<DPPAnalysis> {
+  friend AnalysisInfoMixin<DPPAnalysis>;
   static AnalysisKey Key;
 public:
-  using Result = DPPGlobalResult;
+  using Result = DPPAnalysisResult;
   Result run(Module &M, AnalysisManager<Module> &AM);
 };
 
-class DPPGlobalPrinterPass : public PassInfoMixin<DPPGlobalPrinterPass> {
+class DPPAnalysisPrinterPass : public PassInfoMixin<DPPAnalysisPrinterPass> {
 private:
   raw_ostream &OS;
 public:
-  explicit DPPGlobalPrinterPass(raw_ostream &OS) : OS(OS) {}
+  explicit DPPAnalysisPrinterPass(raw_ostream &OS) : OS(OS) {}
   PreservedAnalyses run(Module &M, AnalysisManager<Module> &AM);
 };
 

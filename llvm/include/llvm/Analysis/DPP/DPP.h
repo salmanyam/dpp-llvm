@@ -11,7 +11,7 @@
 #ifndef LLVM_ANALYSIS_DPP_DPP_H
 #define LLVM_ANALYSIS_DPP_DPP_H
 
-#include "llvm/Analysis/DPP/DPPGlobalAnalysis.h"
+#include "llvm/Analysis/DPP/DPPAnalysis.h"
 #include "llvm/Analysis/DPP/DPPRule6.h"
 
 #endif // LLVM_ANALYSIS_DPP_DPP_H
