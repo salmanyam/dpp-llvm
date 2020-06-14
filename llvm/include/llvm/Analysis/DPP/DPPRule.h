@@ -27,6 +27,7 @@ public:
     return static_cast<ResultT*>(this)->print(OS);
   }
   constexpr const char *getName() const { return AnalysisT::RuleName; };
+  bool empty() const { return true; }
 };
 
 /// Base template implementation of printer pass

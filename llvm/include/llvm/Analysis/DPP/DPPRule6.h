@@ -33,24 +33,16 @@ public:
   Result run(Function &F, AnalysisManager<Function> &AM);
 };
 
-
 class DPPRule6LResult : public DPPResult<DPPRule6L> {
   friend DPPRule6L;
 public:
   using BadLocalsMap = DenseMap<AllocaInst *, StringRef>;
-
 private:
   BadLocalsMap BadLocals;
-
 public:
   DPPRule6LResult() {}
-
-  raw_ostream &print(raw_ostream &OS) const {
-    for (auto Bad : BadLocals) {
-      OS << *Bad.getFirst() << " (" << Bad.getSecond() << ")\n";
-    }
-    return OS;
-  }
+  bool empty() const { return BadLocals.empty(); }
+  raw_ostream &print(raw_ostream &OS) const;
 };
 
 class DPPRule6LPrinterPass : public DPPLocalPrinterPass<DPPRule6L> {

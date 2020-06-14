@@ -79,3 +79,8 @@ DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
   return Result;
 }
 
+raw_ostream &DPPRule6LResult::print(raw_ostream &OS) const {
+  for (auto Bad : BadLocals)
+    OS << *Bad.getFirst() << " (" << Bad.getSecond() << ")\n";
+  return OS;
+}
