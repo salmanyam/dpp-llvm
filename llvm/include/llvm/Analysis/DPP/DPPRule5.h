@@ -17,14 +17,14 @@
 namespace llvm {
 namespace DPP {
 
-class DPPRule6LResult;
-class DPPRule6GResult;
+class DPPRule5LResult;
+class DPPRule5GResult;
 
-class DPPRule6L : public AnalysisInfoMixin<DPPRule6L> {
-  friend AnalysisInfoMixin<DPPRule6L>;
+class DPPRule5L : public AnalysisInfoMixin<DPPRule5L> {
+  friend AnalysisInfoMixin<DPPRule5L>;
 
 public:
-  using Result = DPPRule6LResult;
+  using Result = DPPRule5LResult;
 
   static const char RuleName[];
   static AnalysisKey Key;
@@ -32,22 +32,22 @@ public:
   Result run(Function &F, AnalysisManager<Function> &AM);
 };
 
-class DPPRule6LResult : public DPPResult<DPPRule6L> {
-  friend DPPRule6L;
+class DPPRule5LResult : public DPPResult<DPPRule5L> {
+  friend DPPRule5L;
 public:
   using BadLocalsMap = DenseMap<AllocaInst *, StringRef>;
 private:
   BadLocalsMap BadLocals;
 public:
-  DPPRule6LResult() {}
+  DPPRule5LResult() {}
   bool empty() const { return BadLocals.empty(); }
   raw_ostream &print(raw_ostream &OS) const;
 };
 
-class DPPRule6G : public AnalysisInfoMixin<DPPRule6G> {
-  friend AnalysisInfoMixin<DPPRule6G>;
+class DPPRule5G : public AnalysisInfoMixin<DPPRule5G> {
+  friend AnalysisInfoMixin<DPPRule5G>;
 public:
-  using Result = DPPRule6GResult;
+  using Result = DPPRule5GResult;
 
   static const char RuleName[];
   static AnalysisKey Key;
@@ -55,31 +55,31 @@ public:
   Result run(Module &M, AnalysisManager<Module> &AM);
 };
 
-class DPPRule6GResult : public DPPResult<DPPRule6G> {
-  friend DPPRule6G;
+class DPPRule5GResult : public DPPResult<DPPRule5G> {
+  friend DPPRule5G;
 public:
   using BadGlobalsMap = DenseMap<GlobalValue *, StringRef>;
-  using FunctionInfoMap= DenseMap<Function *, DPPRule6LResult *>;
+  using FunctionInfoMap= DenseMap<Function *, DPPRule5LResult *>;
 private:
   BadGlobalsMap BadGlobals;
   FunctionInfoMap FunctionInfo;
 public:
-  DPPRule6GResult() {}
+  DPPRule5GResult() {}
   bool empty() { return BadGlobals.empty() && FunctionInfo.empty(); }
   raw_ostream &print(raw_ostream &OS) const;
 };
 
-class [[maybe_unused]] DPPRule6LPrinterPass
-    : public DPPLocalPrinterPass<DPPRule6L> {
+class [[maybe_unused]] DPPRule5LPrinterPass
+    : public DPPLocalPrinterPass<DPPRule5L> {
 public:
-  [[maybe_unused]] DPPRule6LPrinterPass(raw_ostream &OS)
+  [[maybe_unused]] DPPRule5LPrinterPass(raw_ostream &OS)
       : DPPLocalPrinterPass(OS) {}
 };
 
-class [[maybe_unused]] DPPRule6GPrinterPass
-    : public DPPGlobalPrinterPass<DPPRule6G> {
+class [[maybe_unused]] DPPRule5GPrinterPass
+    : public DPPGlobalPrinterPass<DPPRule5G> {
 public:
-  [[maybe_unused]] DPPRule6GPrinterPass(raw_ostream &OS)
+  [[maybe_unused]] DPPRule5GPrinterPass(raw_ostream &OS)
       : DPPGlobalPrinterPass(OS) {}
 };
 

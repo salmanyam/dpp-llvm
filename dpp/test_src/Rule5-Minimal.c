@@ -1,8 +1,7 @@
 /*
  * Author: Hans Liljestrand <hans@liljestrand.dev>
- * Copyright (C) 2020 Hans Liljestrand <hans@liljestrand.dev>
  *
- * Distributed under terms of the MIT license.
+ * Distributed under Apache License v2.0 with LLVM Exceptions.
  */
 
 #include <stdio.h>

@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Analysis/DPP/DPPRule6.h"
+#include "llvm/Analysis/DPP/DPPRule5.h"
 #include "llvm/Analysis/DPP/TypeVisitor.h"
 #include "llvm/IR/InstVisitor.h"
 
@@ -17,14 +17,14 @@
 using namespace llvm;
 using namespace llvm::DPP;
 
-[[maybe_unused]] const char DPPRule6L::RuleName[] = "DPPRule6L";
-[[maybe_unused]] const char DPPRule6G::RuleName[] = "DPPRule6G";
-AnalysisKey DPPRule6L::Key;
-AnalysisKey DPPRule6G::Key;
+[[maybe_unused]] const char DPPRule5L::RuleName[] = "DPPRule5L";
+[[maybe_unused]] const char DPPRule5G::RuleName[] = "DPPRule5G";
+AnalysisKey DPPRule5L::Key;
+AnalysisKey DPPRule5G::Key;
 
 namespace {
 
-using BadLocalsMap = DPPRule6LResult::BadLocalsMap;
+using BadLocalsMap = DPPRule5LResult::BadLocalsMap;
 
 /// Define some common Rule6 Stuff here
 struct TypeChecker : public TypeVisitor<TypeChecker> {
@@ -77,7 +77,7 @@ void LocalsVisitor::visitAllocaInst(AllocaInst &AI) {
   }
 }
 
-DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
+DPPRule5L::Result DPPRule5L::run(Function &F, AnalysisManager<Function> &AM) {
   Result Result {};
 
   LocalsVisitor Visitor(&Result.BadLocals);
@@ -86,7 +86,7 @@ DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
   return Result;
 }
 
-DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
+DPPRule5G::Result DPPRule5G::run(Module &M, AnalysisManager<Module> &AM) {
   Result Result {};
 
   // Check if we got iffy global variables
@@ -97,7 +97,7 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
     if (G.isConstant())
       continue; // Skip constants
 
-    LLVM_DEBUG(dbgs() << "DPPRule6G: inspecting GlobalValue of:\n");
+    LLVM_DEBUG(dbgs() << "DPPRule5G: inspecting GlobalValue of:\n");
     LLVM_DEBUG(G.getValueType()->dump());
     Checker.visit(G.getValueType());
 
@@ -113,7 +113,7 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
     if (F.isDeclaration())
       continue; // Skip declarations (i.e., functions without a definition)
 
-    auto &R = FAM.getResult<DPPRule6L>(F);
+    auto &R = FAM.getResult<DPPRule5L>(F);
 
     if (!R.empty()) // Store only non-empty results
       Result.FunctionInfo.try_emplace(&F, &R);
@@ -122,13 +122,13 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
   return Result;
 }
 
-raw_ostream &DPPRule6LResult::print(raw_ostream &OS) const {
+raw_ostream &DPPRule5LResult::print(raw_ostream &OS) const {
   for (auto Bad : BadLocals)
     OS << *Bad.getFirst() << " (" << Bad.getSecond() << ")\n";
   return OS;
 }
 
-raw_ostream &DPPRule6GResult::print(raw_ostream &OS) const {
+raw_ostream &DPPRule5GResult::print(raw_ostream &OS) const {
   OS << "Globals:\n";
   for (auto G : BadGlobals) {
     auto *const GV = G.getFirst();

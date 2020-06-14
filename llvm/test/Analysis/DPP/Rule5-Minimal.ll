@@ -1,8 +1,8 @@
-; RUN: opt -S -passes="print<dpp-local-rule6>" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,LOCAL
-; RUN: opt -S -passes="print-dpp-global-rule6" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,GLOBAL
+; RUN: opt -S -passes="print<dpp-local-rule5>" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,LOCAL
+; RUN: opt -S -passes="print-dpp-global-rule5" -disable-output < %s 2>&1 | FileCheck %s --check-prefixes=CHECK,GLOBAL
 
-; LOCAL: DPPRule6L
-; GLOBAL: DPPRule6G
+; LOCAL: DPPRule5L
+; GLOBAL: DPPRule5G
 ; GLOBAL-LABEL: {{^Globals:$}}
 ; GLOBAL-NOT: @g_ms_safer
 ; GLOBAL: @g_ms = %struct.mystruct_s
@@ -58,8 +58,8 @@
 ;     func_safer(&g_ms_safer);
 ;     return 0;
 ; }
-; ModuleID = 'Rule6-Minimal.c'
-source_filename = "Rule6-Minimal.c"
+; ModuleID = 'Rule5-Minimal.c'
+source_filename = "Rule5-Minimal.c"
 target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 

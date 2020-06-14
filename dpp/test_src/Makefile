@@ -1,8 +1,7 @@
 #
-# Makefile
-# Hans Liljestrand, 2020-05-14 16:48
+# Author: Hans Liljestrand <hans@liljestrand.dev>
 #
-
+# Distributed under Apache License v2.0 with LLVM Exceptions.
 
 SOURCE_FILES = $(wildcard *.c)
 LLVM_FILES = $(SOURCE_FILES:.c=.ll)
