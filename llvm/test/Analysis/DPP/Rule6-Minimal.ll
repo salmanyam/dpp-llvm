@@ -5,8 +5,8 @@
 ; GLOBAL: DPPRule6G
 ; GLOBAL-LABEL: {{^Globals:$}}
 ; GLOBAL-LABEL: {{^Functions:$}}
-; LOCAL-LABEL: main
-; LOCAL: alloca %struct.mystruct_s
+; CHECK-LABEL: {{main:$}}
+; CHECK: alloca %struct.mystruct_s
 
 ; clang -Xclang -disable-lifetime-markers -fno-unroll-loops -O2 -emit-llvm -c -S
 

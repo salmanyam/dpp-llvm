@@ -84,6 +84,18 @@ DPPRule6L::Result DPPRule6L::run(Function &F, AnalysisManager<Function> &AM) {
 DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
   Result Result {};
 
+  // Collect the local results into our Result object
+  auto &FAM = AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
+  for (auto &F : M) {
+    if (F.isDeclaration())
+      continue; // Skip declarations (i.e., functions without a definition)
+
+    auto &R = FAM.getResult<DPPRule6L>(F);
+
+    if (!R.empty()) // Store only non-empty results
+      Result.FunctionInfo.try_emplace(&F, &R);
+  }
+
   return Result;
 }
 
