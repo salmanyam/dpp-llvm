@@ -58,7 +58,7 @@ bool TypeChecker::visitArrayType(const ArrayType *) {
 bool TypeChecker::visitVectorType(const VectorType *) {
   // Assume that the buffer might corrupt its own elements.
   FoundBuffer = true;
-  return FoundBuffer
+  return FoundBuffer;
 }
 
 void LocalsVisitor::visitAllocaInst(AllocaInst &AI) {
