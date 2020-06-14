@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
-#define LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
+#ifndef LLVM_ANALYSIS_DPP_DPPANALYSIS_H
+#define LLVM_ANALYSIS_DPP_DPPANALYSIS_H
 
 #include "llvm/Analysis/DPP/DPP.h"
 
@@ -18,13 +18,13 @@ namespace DPP {
 
 class DPPAnalysisResult {
 private:
-  StringRef data;
+  StringRef Data;
 public:
   DPPAnalysisResult() = delete;
-  DPPAnalysisResult(StringRef data) : data(data) {}
+  [[maybe_unused]] DPPAnalysisResult(StringRef Data) : Data(Data) {}
 
   raw_ostream &print(raw_ostream &OS) const {
-    OS << data;
+    OS << Data;
     return OS;
   }
 };
@@ -48,4 +48,4 @@ public:
 } // namespace DPP
 } // namespace llvm
 
-#endif // LLVM_ANALYSIS_DPP_DPPGLOBALANALYSIS_H
+#endif // LLVM_ANALYSIS_DPP_DPPANALYSIS_H

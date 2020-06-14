@@ -12,8 +12,6 @@
 #define LLVM_ANALYSIS_DPP_DPPRULE6_H
 
 #include "llvm/Analysis/DPP/DPPRule.h"
-#include "llvm/Analysis/DPP/TypeVisitor.h"
-#include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
 
 namespace llvm {
@@ -71,14 +69,18 @@ public:
   raw_ostream &print(raw_ostream &OS) const;
 };
 
-class DPPRule6LPrinterPass : public DPPLocalPrinterPass<DPPRule6L> {
+class [[maybe_unused]] DPPRule6LPrinterPass
+    : public DPPLocalPrinterPass<DPPRule6L> {
 public:
-  DPPRule6LPrinterPass(raw_ostream &OS) : DPPLocalPrinterPass(OS) {}
+  [[maybe_unused]] DPPRule6LPrinterPass(raw_ostream &OS)
+      : DPPLocalPrinterPass(OS) {}
 };
 
-class DPPRule6GPrinterPass : public DPPGlobalPrinterPass<DPPRule6G> {
+class [[maybe_unused]] DPPRule6GPrinterPass
+    : public DPPGlobalPrinterPass<DPPRule6G> {
 public:
-  DPPRule6GPrinterPass(raw_ostream &OS) : DPPGlobalPrinterPass(OS) {}
+  [[maybe_unused]] DPPRule6GPrinterPass(raw_ostream &OS)
+      : DPPGlobalPrinterPass(OS) {}
 };
 
 } // namespace DPP

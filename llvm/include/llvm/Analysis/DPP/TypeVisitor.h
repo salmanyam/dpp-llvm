@@ -62,15 +62,15 @@ struct TypeVisitor {
     }
   }
 
-  bool visitArrayType(const ArrayType *) { return true; }
-  bool visitFloatingPointType(const Type *) { return true; }
-  bool visitFunctionType(const FunctionType *) { return true; }
-  bool visitIntegerType(const IntegerType *) { return true; }
-  bool visitPointerType(const PointerType *) { return true; }
-  bool visitStructType(const StructType *) { return true; }
-  bool visitVectorType(const VectorType *) { return true; }
-  bool visitVoidType(const Type *) { return true; }
-  bool visitOtherType(const Type *) { return true; }
+  [[maybe_unused]] bool visitArrayType(const ArrayType *) { return true; }
+  [[maybe_unused]] bool visitFloatingPointType(const Type *) { return true; }
+  [[maybe_unused]] bool visitFunctionType(const FunctionType *) { return true; }
+  [[maybe_unused]] bool visitIntegerType(const IntegerType *) { return true; }
+  [[maybe_unused]] bool visitPointerType(const PointerType *) { return true; }
+  [[maybe_unused]] bool visitStructType(const StructType *) { return true; }
+  [[maybe_unused]] bool visitVectorType(const VectorType *) { return true; }
+  [[maybe_unused]] bool visitVoidType(const Type *) { return true; }
+  [[maybe_unused]] bool visitOtherType(const Type *) { return true; }
 };
 
 } // namespace DPP

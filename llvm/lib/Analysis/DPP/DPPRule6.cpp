@@ -11,16 +11,14 @@
 #include "llvm/Analysis/DPP/DPPRule6.h"
 #include "llvm/Analysis/DPP/TypeVisitor.h"
 #include "llvm/IR/InstVisitor.h"
-#include "llvm/IR/Instructions.h"
-#include <queue>
 
 #define DEBUG_TYPE "DPPRule6"
 
 using namespace llvm;
 using namespace llvm::DPP;
 
-const char DPPRule6L::RuleName[] = "DPPRule6L";
-const char DPPRule6G::RuleName[] = "DPPRule6G";
+[[maybe_unused]] const char DPPRule6L::RuleName[] = "DPPRule6L";
+[[maybe_unused]] const char DPPRule6G::RuleName[] = "DPPRule6G";
 AnalysisKey DPPRule6L::Key;
 AnalysisKey DPPRule6G::Key;
 
@@ -32,9 +30,9 @@ using BadLocalsMap = DPPRule6LResult::BadLocalsMap;
 struct TypeChecker : public TypeVisitor<TypeChecker> {
   bool FoundBuffer = false;
   bool FoundVulnerablePointer = false;
-  bool visitPointerType(const PointerType *Ty);
-  bool visitArrayType(const ArrayType *Ty);
-  bool visitVectorType(const VectorType *Ty);
+  [[maybe_unused]] bool visitPointerType(const PointerType *Ty);
+  [[maybe_unused]] bool visitArrayType(const ArrayType *Ty);
+  [[maybe_unused]] bool visitVectorType(const VectorType *Ty);
   void reset() {
     FoundBuffer = false;
     FoundVulnerablePointer = false;
