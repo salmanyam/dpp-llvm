@@ -15,13 +15,6 @@
 
 ; clang -Xclang -disable-lifetime-markers -fno-unroll-loops -O2
 
-; /*
-;  * Author: Hans Liljestrand <hans@liljestrand.dev>
-;  * Copyright (C) 2020 Hans Liljestrand <hans@liljestrand.dev>
-;  *
-;  * Distributed under terms of the MIT license.
-;  */
-;
 ; #include <stdio.h>
 ;
 ; typedef struct mystruct_s {
