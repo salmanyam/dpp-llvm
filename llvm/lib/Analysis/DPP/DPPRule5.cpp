@@ -42,13 +42,6 @@ struct TypeChecker : public TypeVisitor<TypeChecker> {
   }
 };
 
-/// Visitor to look through all Alloca instruction
-struct LocalsVisitor : public InstVisitor<LocalsVisitor> {
-  BadLocalsMap *BadLocals;
-  LocalsVisitor(BadLocalsMap *BadLocals) : BadLocals(BadLocals) {}
-  void visitAllocaInst(AllocaInst &AI);
-};
-
 } // namespace
 
 bool TypeChecker::visitPointerType(const PointerType *) {
@@ -70,6 +63,17 @@ bool TypeChecker::visitVectorType(const VectorType *) {
   FoundBuffer = true;
   return FoundBuffer;
 }
+
+namespace {
+
+/// Visitor to look through all Alloca instruction
+struct LocalsVisitor : public InstVisitor<LocalsVisitor> {
+  BadLocalsMap *BadLocals;
+  LocalsVisitor(BadLocalsMap *BadLocals) : BadLocals(BadLocals) {}
+  void visitAllocaInst(AllocaInst &AI);
+};
+
+} // namespace
 
 void LocalsVisitor::visitAllocaInst(AllocaInst &AI) {
   TypeChecker Checker {};
@@ -100,8 +104,9 @@ DPPRule5G::Result DPPRule5G::run(Module &M, AnalysisManager<Module> &AM) {
     if (G.isConstant())
       continue; // Skip constants
 
-    LLVM_DEBUG(dbgs() << "DPPRule5G: inspecting GlobalValue of:\n");
+    LLVM_DEBUG(dbgs() << "DPPRule5G: inspecting GlobalValue of type: ");
     LLVM_DEBUG(G.getValueType()->dump());
+
     Checker.visit(G.getValueType());
 
     if (Checker.FoundVulnerablePointer) {
