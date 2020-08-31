@@ -12,7 +12,7 @@
 #include "llvm/Analysis/DPP/TypeVisitor.h"
 #include "llvm/IR/InstVisitor.h"
 
-#define DEBUG_TYPE "DPPRule6"
+#define DEBUG_TYPE "DPPRule5"
 
 using namespace llvm;
 using namespace llvm::DPP;
