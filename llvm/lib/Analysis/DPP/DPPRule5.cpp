@@ -99,8 +99,6 @@ DPPRule5G::Result DPPRule5G::run(Module &M, AnalysisManager<Module> &AM) {
   // Check if we got iffy global variables
   TypeChecker Checker {};
   for (auto &G : M.globals()) {
-    if (G.isDeclaration())
-      continue; // Skip declaration without definition
     if (G.isConstant())
       continue; // Skip constants
 
