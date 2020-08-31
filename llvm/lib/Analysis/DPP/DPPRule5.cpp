@@ -5,7 +5,10 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-//
+// Looks for allocas or global values that use a potentially problematic type.
+// This is split into a Function pass that finds and checks allocas within
+// functions, and a Module pass that combines the local information and goes
+// through all GlobalValues.
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Analysis/DPP/DPPRule5.h"
