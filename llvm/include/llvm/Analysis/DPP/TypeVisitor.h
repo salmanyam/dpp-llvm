@@ -50,10 +50,9 @@ struct TypeVisitor {
           if (!visit(Ty->getStructElementType(I)))
             return false;
       return true;
-    case Type::VectorTyID:
-      if (((SubClass *)this)->visitVectorType(
-              static_cast<const VectorType *>(Ty)))
-        return visit(Ty->getVectorElementType());
+      case Type::ScalableVectorTyID:
+      case Type::FixedVectorTyID:
+        return visit(static_cast<const VectorType *>(Ty)->getElementType());
       return false;
     case Type::VoidTyID:
       return ((SubClass *)this)->visitVoidType(Ty);
