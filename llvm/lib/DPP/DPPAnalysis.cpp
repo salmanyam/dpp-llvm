@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Analysis/DPP/DPPAnalysis.h"
+#include "llvm/DPP/DPPAnalysis.h"
 
 #define DEBUG_TYPE "DPPGlobalAnalysis"
 

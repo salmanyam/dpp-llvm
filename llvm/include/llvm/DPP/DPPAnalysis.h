@@ -11,7 +11,7 @@
 #ifndef LLVM_ANALYSIS_DPP_DPPANALYSIS_H
 #define LLVM_ANALYSIS_DPP_DPPANALYSIS_H
 
-#include "llvm/Analysis/DPP/DPP.h"
+#include "llvm/DPP/DPP.h"
 
 namespace llvm {
 namespace DPP {

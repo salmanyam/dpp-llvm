@@ -11,8 +11,8 @@
 // through all GlobalValues.
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Analysis/DPP/DPPRule5.h"
-#include "llvm/Analysis/DPP/TypeVisitor.h"
+#include "llvm/DPP/DPPRule5.h"
+#include "llvm/DPP/TypeVisitor.h"
 #include "llvm/IR/InstVisitor.h"
 
 #define DEBUG_TYPE "DPPRule5"

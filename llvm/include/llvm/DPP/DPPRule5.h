@@ -11,7 +11,7 @@
 #ifndef LLVM_ANALYSIS_DPP_DPPRULE6_H
 #define LLVM_ANALYSIS_DPP_DPPRULE6_H
 
-#include "llvm/Analysis/DPP/DPPRule.h"
+#include "llvm/DPP/DPPRule.h"
 #include "llvm/IR/PassManager.h"
 
 namespace llvm {
