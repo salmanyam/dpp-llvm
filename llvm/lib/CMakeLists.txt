@@ -59,3 +59,5 @@ endif()
 # Component post-processing
 LLVMBuildResolveComponentsLink()
 LLVMBuildGenerateCFragment(OUTPUT ${LLVMCONFIGLIBRARYDEPENDENCIESINC})
+
+add_subdirectory(DPP)

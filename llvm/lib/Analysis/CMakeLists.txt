@@ -14,9 +14,6 @@ if (DEFINED LLVM_HAVE_TF_AOT OR DEFINED LLVM_HAVE_TF_API)
 endif()
 
 add_llvm_component_library(LLVMAnalysis
-  DPP/DPPRule5.cpp
-  DPP/DPPAnalysis.cpp
-  DPP/DPPRule5.cpp
   AliasAnalysis.cpp
   AliasAnalysisEvaluator.cpp
   AliasAnalysisSummary.cpp
@@ -140,6 +137,7 @@ add_llvm_component_library(LLVMAnalysis
 
   LINK_LIBS
   ${MLLinkDeps}
+  DPP
 
   LINK_COMPONENTS
   BinaryFormat
@@ -147,4 +145,7 @@ add_llvm_component_library(LLVMAnalysis
   Object
   ProfileData
   Support
-  )
+)
+
+target_link_libraries(LLVMAnalysis PRIVATE DPP)
+
