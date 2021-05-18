@@ -13,5 +13,6 @@
 
 #include "llvm/DPP/DPPAnalysis.h"
 #include "llvm/DPP/DPPRule5.h"
+#include "llvm/DPP/DPPRule7.h"
 
 #endif // LLVM_ANALYSIS_DPP_DPP_H
