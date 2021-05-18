@@ -2,7 +2,6 @@ add_llvm_component_library(DPP
   DPPRule5.cpp
   DPPAnalysis.cpp
   DPPRule5.cpp
-  DPPRule7.cpp
 
   ADDITIONAL_HEADER_DIRS
   SVF_SOURCE_DIR}/include
