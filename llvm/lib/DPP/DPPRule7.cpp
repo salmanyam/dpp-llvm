@@ -100,6 +100,7 @@ void markInputNodesOnSVFG(const VFGNode* vNode) {
 
             // we know the instruction is store, so get the first and second operand
             // auto Operand1 = SVFG->getInst()->getOperand(0);
+            assert(SVFG->getInst()->getNumOperands() > 1);
             auto Operand2 = SVFG->getInst()->getOperand(1);
 
             for (VFGNode::const_iterator it = vNode->InEdgeBegin(), eit =
@@ -430,6 +431,36 @@ AnalysisKey DPPRule7G::Key;
 
 DPPRule7G::Result DPPRule7G::run(Module &M, AnalysisManager<Module> &AM) {
   Result Result {};
+
+  SVFModule *SVFModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
+
+  PAGBuilder Builder;
+  PAG *PAG = Builder.build(SVFModule);
+
+  Andersen *Andersen = AndersenWaveDiff::createAndersenWaveDiff(PAG);
+
+  PTACallGraph *Callgraph = Andersen->getPTACallGraph();
+
+//   PTACallGraphNode *CGNode = nullptr;
+
+//   for (auto CG = Callgraph->begin(), end = Callgraph->end(); CG != end; ++CG) {
+//       CGNode = CG->second;
+//       if (CGNode->getFunction()->getName() == "malloc")
+//           break;
+//   }
+
+//   ICFG* ICFG = PAG->getICFG();
+
+//   for (auto it = PAG->getCallSiteRets().begin(),
+//             end = PAG->getCallSiteRets().end();
+//        it != end; ++it) {
+//     const RetBlockNode *cs = it->first;
+//   }
+
+  SVFGBuilder SVFGBuilder;
+  SVFG *SVFG = SVFGBuilder.buildFullSVFGWithoutOPT(Andersen);
+
+  Rule7Global(PAG, Callgraph, SVFG);
 
   return Result;
 }
