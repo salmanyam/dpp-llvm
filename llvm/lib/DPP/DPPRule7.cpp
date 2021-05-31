@@ -96,12 +96,17 @@ void markInputNodesOnSVFG(const VFGNode* vNode) {
             //errs() << "store related start---------------------\n";
             //errs() << *vNode << "\n";
             const StoreVFGNode *SVFG = SVFUtil::dyn_cast<StoreVFGNode>(vNode);
+            assert(SVFG != nullptr);
             //errs() << *SVFG->getInst() << "\n";
 
             // we know the instruction is store, so get the first and second operand
             // auto Operand1 = SVFG->getInst()->getOperand(0);
-            assert(SVFG->getInst()->getNumOperands() > 1);
-            auto Operand2 = SVFG->getInst()->getOperand(1);
+
+            auto *Inst = SVFG->getInst();
+            if (Inst == nullptr) continue;
+
+            assert(Inst->getNumOperands() > 1);
+            auto Operand2 = Inst->getOperand(1);
 
             for (VFGNode::const_iterator it = vNode->InEdgeBegin(), eit =
                     vNode->InEdgeEnd(); it != eit; ++it) {
