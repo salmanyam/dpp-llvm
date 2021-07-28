@@ -1,6 +1,6 @@
-//==- DPPRule6.h -----------------------------------------------------------==//
+//==- DPPRule5.h -----------------------------------------------------------==//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// Under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_ANALYSIS_DPP_DPPRULE6_H
-#define LLVM_ANALYSIS_DPP_DPPRULE6_H
+#ifndef LLVM_ANALYSIS_DPP_DPPRULE5_H
+#define LLVM_ANALYSIS_DPP_DPPRULE5_H
 
 #include "llvm/DPP/DPPRule.h"
 #include "llvm/DPP/DPPUtils.h"
@@ -96,4 +96,4 @@ public:
 } // namespace DPP
 } // namespace llvm
 
-#endif // LLVM_ANALYSIS_DPP_DPPRULE6_H
+#endif // LLVM_ANALYSIS_DPP_DPPRULE5_H

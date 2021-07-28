@@ -1,6 +1,6 @@
-//==- DPPRule6.cpp ---------------------------------------------------------==//
+//==- DPPRule5.cpp ---------------------------------------------------------==//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// Under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
@@ -36,7 +36,7 @@ namespace {
 
 using BadLocalsMap = DPPRule5LResult::BadLocalsMap;
 
-/// Define some common Rule6 Stuff here
+/// Define some common Rule5 Stuff here
 struct TypeChecker : public TypeVisitor<TypeChecker> {
     bool FoundBuffer = false;
     bool FoundVulnerablePointer = false;
