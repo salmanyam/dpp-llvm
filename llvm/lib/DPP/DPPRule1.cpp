@@ -2,14 +2,18 @@
 // Created by salman on 3/8/21.
 //
 #include <queue>
+#include "set"
 
+#include "llvm/DPP/SVFInitPass.h"
 #include "llvm/DPP/DPPRule1.h"
+
 #include "Graphs/SVFG.h"
 #include "SVF-FE/LLVMUtil.h"
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/Andersen.h"
 
-void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg);
+
+DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg);
 
 using namespace llvm;
 using namespace llvm::DPP;
@@ -18,18 +22,8 @@ using namespace SVF;
 
 #define DEBUG_TYPE "DPPRule1"
 
-// for manually inserting input reading functions
+// to store input dependent library functions
 InputFunctionMap InputFunctions;
-InputFunction IF_scanf = {"__isoc99_scanf", 1, false};
-InputFunction IF_fscanf = {"__isoc99_fscanf", 2, false};
-InputFunction IF_freaduntil = {"freaduntil", 0, false};
-InputFunction IF_fread = {"fread", 0, false};
-InputFunction IF_read = {"read", 0, false};
-InputFunction IF_fgets = {"fgets", 0, false};
-InputFunction IF_recv = {"recv", 0, false};
-
-//todo: marking the return type as input dependent
-
 
 // for tracking the SVFG nodes that are dependent on input
 NodeSet InputSVFGNodes;
@@ -39,7 +33,7 @@ DenseMap<const VFGNode *, bool> SafeSVFNodes;
 
 
 void Rule1Init() {
-    errs() << "Initializing input functions for Rule 7\n";
+    LLVM_DEBUG(dbgs() << "Initializing Rule 1\n");
 
     // clear any SVF nodes from the dataset
     InputSVFGNodes.clear();
@@ -49,23 +43,17 @@ void Rule1Init() {
     // clear the SVF nodes from dataset
     SafeSVFNodes.clear();
 
-    // Insert the input functions
-    InputFunctions.try_emplace(IF_scanf.name, &IF_scanf);
-    InputFunctions.try_emplace(IF_fscanf.name, &IF_fscanf);
-    InputFunctions.try_emplace(IF_freaduntil.name, &IF_freaduntil);
-    InputFunctions.try_emplace(IF_fread.name, &IF_fread);
-    InputFunctions.try_emplace(IF_read.name, &IF_read);
-    InputFunctions.try_emplace(IF_fgets.name, &IF_fgets);
-    InputFunctions.try_emplace(IF_recv.name, &IF_recv);
+    // clear and obtain input functions
+    InputFunctions.clear();
 
-}
-
-bool isDataPointer(Type *T) {
-    if (T && T->isPointerTy() && !T->isFunctionTy()) {
-        return true;
+    auto IF = DPP::getInputLibFunctions();
+    for(auto item: IF) {
+        //todo: marking the return type as input dependent
+        InputFunction Func = {StringRef(item->c_str()), 0, false};
+        InputFunctions.try_emplace(Func.name, &Func);
     }
-    return false;
 }
+
 
 bool isInputReadingFunction(StringRef funcName) {
     if (InputFunctions.find(funcName) != InputFunctions.end())
@@ -84,188 +72,43 @@ const VFGNode* getVFGNodeFromValue(PAG *pag, SVFG *svfg, const Value *val) {
 }
 
 /*!
- * Mark all the nodes in the SVFG as input dependent along the path
- * of all the uses of a definition of a value along value-flow graph (VFG)
- */
-void markInputNodesOnSVFG(const VFGNode* vNode) {
-    FIFOWorkList<const VFGNode*> worklist;
-    Set<const VFGNode*> visited;
-    visited.insert(vNode);
-    worklist.push(vNode);
-
-    /// Traverse along VFG
-    while (!worklist.empty())
-    {
-        const VFGNode* vNode = worklist.pop();
-        //errs() << *vNode << "\n";
-        // insert the input nodes
-        InputSVFGNodes.insert(vNode->getId());
-        errs() << *vNode << "\n";
-
-        for (VFGNode::const_iterator it = vNode->OutEdgeBegin(), eit =
-                vNode->OutEdgeEnd(); it != eit; ++it) {
-            VFGEdge *edge = *it;
-            VFGNode *successorNode = edge->getDstNode();
-
-            // if not visited, then mark as visted and insert into worklist
-            if (visited.find(successorNode) == visited.end()) {
-                visited.insert(successorNode);
-                worklist.push(successorNode);
-            }
-        }
-
-        // if the VFG node is a store and if the first param is
-        // stored on the second param of a store instruction, then
-        // include the second param as well.
-        if (vNode->getNodeKind() == VFGNode::VFGNodeK::Store) {
-            //errs() << "store related start---------------------\n";
-            //errs() << *vNode << "\n";
-            const StoreVFGNode *SVFG = SVFUtil::dyn_cast<StoreVFGNode>(vNode);
-            //errs() << *SVFG->getInst() << "\n";
-
-            // we know the instruction is store, so get the first and second operand
-            // auto Operand1 = SVFG->getInst()->getOperand(0);
-            auto Operand2 = SVFG->getInst()->getOperand(1);
-
-            for (VFGNode::const_iterator it = vNode->InEdgeBegin(), eit =
-                    vNode->InEdgeEnd(); it != eit; ++it) {
-                VFGEdge *edge = *it;
-
-                // if storing to a variable indirectly, discard it for now
-                // todo: visit here to think about the indirect store
-                if (edge->isIndirectVFGEdge())
-                    continue;
-
-                VFGNode *predNode = edge->getSrcNode();
-
-                // no need to consider the already visited one
-                if (visited.find(predNode) == visited.end()) {
-                    // Only considering the statement nodes
-                    // todo: revisit here to consider other nodes such as memory region and params
-                    if(StmtVFGNode *Smt = SVFUtil::dyn_cast<StmtVFGNode>(predNode)) {
-                        // Insert this node if the following is true, i.e.,
-                        // user dependent variable is being stored in operand2
-                        if (Smt->getInst() == Operand2) {
-                            //errs() << *Smt << "\n";
-                            visited.insert(Smt);
-                            worklist.push(Smt);
-                        }
-                    }
-                }
-            }
-            //errs() << "store related end---------------------\n";
-        }
-
-    }
-
-    /*
-    /// Collect all LLVM Values
-    for(Set<const VFGNode*>::const_iterator it = visited.begin(), eit = visited.end(); it!=eit; ++it)
-    {
-        const VFGNode* node = *it;
-        /// can only query VFGNode involving top-level pointers (starting with % or @ in LLVM IR)
-        /// PAGNode* pNode = vfg->getLHSTopLevPtr(node);
-        //Value* val = pNode->getValue();
-        errs() << *node << "\n";
-    }*/
-}
-
-/*!
- * Look for all the nodes in the SVFG starting from an address taken node.
- * If a conditional statement is found, mark the starting address taken node
- * as potentially safe.
- */
-bool lookForCondition(const VFGNode* vNode) {
-    FIFOWorkList<const VFGNode*> worklist;
-    Set<const VFGNode*> visited;
-    visited.insert(vNode);
-    worklist.push(vNode);
-
-    /// Traverse along VFG
-    while (!worklist.empty())
-    {
-        const VFGNode* vNode = worklist.pop();
-        //errs() << *vNode << "\n";
-        // insert the input nodes
-        //InputSVFGNodes.insert(vNode->getId());
-        errs() << *vNode << "\n";
-        if (vNode->getNodeKind() == VFGNode::VFGNodeK::Cmp) {
-            return true;
-        }
-
-        //if (const Instruction *I = SVFUtil::dyn_cast<Instruction>(AVFG->getInst())) {
-
-        for (VFGNode::const_iterator it = vNode->OutEdgeBegin(), eit =
-                vNode->OutEdgeEnd(); it != eit; ++it) {
-            VFGEdge *edge = *it;
-
-            // do not follow the indirectly edge, discard it for now
-            // todo: visit here to think about the indirect edge
-            if (edge->isIndirectVFGEdge())
-                continue;
-
-            VFGNode *successorNode = edge->getDstNode();
-
-            // if not visited, then mark as visted and insert into worklist
-            if (visited.find(successorNode) == visited.end()) {
-                visited.insert(successorNode);
-                worklist.push(successorNode);
-            }
-        }
-    }
-
-    return false;
-}
-
-/*!
  * This function traverse the SVF graph and collect taint list
  * by following nodes that are dependent on user input
  */
 NodeSet updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
-
     NodeSet m_PointsTo;
 
     FIFOWorkList<const VFGNode*> worklist;
     Set<const VFGNode*> visited;
+
     worklist.push(arg_vNode);
+    visited.insert(arg_vNode);
 
     /// Traverse along VFG
     while (!worklist.empty())
     {
         const VFGNode* vNode = worklist.pop();
-        errs() << "TAINTING: " << *vNode << "\n";
+        LLVM_DEBUG(dbgs() << "TAINTING: " << *vNode << "\n");
+
         TaintedSVFNodes.insert(vNode->getId());
 
-        // if an allocation site is found, then propagate the input
-        // dependency to all successor nodes
+        // if an allocation site is found, then propagate the input dependency to all successor nodes
         if (vNode->getNodeKind() == VFGNode::VFGNodeK::Addr) {
             UnsafeSVFNodes.insert(vNode->getId());
-            //errs() << "\n\nFound AddrVFGNode = " << *vNode << "\n\n";
-            //errs() << "****************PROPAGATION START******************\n";
-            //markInputNodesOnSVFG(vNode);
-            //errs() << "****************PROPAGATION END******************\n";
         }
-
-        //errs() << "Total outgoing edges = " << vNode->getOutEdges().size() << "\n";
 
         for (auto it = vNode->OutEdgeBegin(), eit = vNode->OutEdgeEnd(); it != eit; ++it) {
             VFGEdge *edge = *it;
-
-            // skip the indirect relationship for finding allocation site for input dependency
-            //if (edge->isIndirectVFGEdge())
-            //   continue;
-
             VFGNode *dstNode = edge->getDstNode();
 
             if (visited.find(dstNode) == visited.end()) {
-                visited.insert(dstNode);
                 worklist.push(dstNode);
+                visited.insert(dstNode);
             }
         }
 
-        // if the VFG node is a store and if the first param is
-        // stored on the second param of a store instruction, then
-        // include the second param as well.
+        // if the VFG node is a store and if the first param is stored on the second param of a store instruction,
+        // then include the second param as well.
         if (vNode->getNodeKind() == VFGNode::VFGNodeK::Store) {
             const auto *SVFG = SVFUtil::dyn_cast<StoreVFGNode>(vNode);
 
@@ -291,15 +134,17 @@ NodeSet updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
                         // Insert this node if the following is true, i.e.,
                         // user dependent variable is being stored in operand2
                         if (Smt->getInst() == Operand2) {
-                            //errs() << *Smt << "\n";
-                            visited.insert(Smt);
                             worklist.push(Smt);
+                            visited.insert(Smt);
 
                             // get the points-to set
                             NodeID pNodeId = svfg->getPAG()->getValueNode(Operand2);
                             const NodeBS& pts = svfg->getPTA()->getPts(pNodeId);
                             for (unsigned int pt : pts)
                             {
+                                if (!svfg->getPAG()->hasGNode(pt))
+                                    continue;
+
                                 PAGNode* targetObj = svfg->getPAG()->getPAGNode(pt);
                                 if(targetObj->hasValue())
                                 {
@@ -313,7 +158,6 @@ NodeSet updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
             }
         }
     }
-
     return m_PointsTo;
 }
 
@@ -365,76 +209,40 @@ auto getReachableNodes(const VFGNode* vNode, PAG *pag, SVFG *svfg) {
 
     return vNodeIDs;
 }
-
+/**
+ * Traverse along with the Inter-procedural CFG to obtain a list of compare instructions
+ */
 auto getCmpInstructions(const ICFGNode *icfgNode) {
     Set<const ICFGNode *> cmpNodes;
-    bool isConstant;
-
     FIFOWorkList<const ICFGNode*> worklist;
     Set<const ICFGNode*> visited;
-    worklist.push(icfgNode);
 
-    /// Traverse along VFG
+    auto numBackwardCmps = getNumBackwardCmps();
+
+    worklist.push(icfgNode);
+    visited.insert(icfgNode);
+
     while (!worklist.empty()) {
         const ICFGNode *node = worklist.pop();
-        //errs() << "ICFG: " << *node << "\n";
 
+        // we are interested in intra block nodes only, other blocks are function entry, exit, global, etc.
         if (node->getNodeKind() == ICFGNode::IntraBlock) {
             if (auto *IBN = SVFUtil::dyn_cast<IntraBlockNode>(node)) {
                 if (const Instruction *I = SVFUtil::dyn_cast<Instruction>(IBN->getInst())) {
                     /// If we found a cmp instruction, insert it into our list
                     if (I->getOpcode() == Instruction::ICmp || I->getOpcode() == Instruction::FCmp) {
                         //errs() << *I << "\n";
-                        if (cmpNodes.size() >= BACKWARD_CMPS)
+                        if (cmpNodes.size() >= numBackwardCmps)
                             continue;
 
                         cmpNodes.insert(node);
                     }
-                    /// determine if constant value is being stored, if so then skip the successor of this node
-                    /*else if (I->getOpcode() == Instruction::Store) {
-                        if (const StoreInst *SI = SVFUtil::dyn_cast<StoreInst>(I)) {
-                            if(SVFUtil::isa<Constant>(SI->getOperand(0))) {
-                                //errs() << "Constant store found" << "\n";
-                                continue;
-                            }
-                        }
-                    }*/
                 }
             }
         }
 
-        /// check if all arguments of a call instruction is constant, if so skip the successors of this node
-        /*if (node->getNodeKind() == ICFGNode::FunCallBlock) {
-            if (auto *CBN = SVFUtil::dyn_cast<CallBlockNode>(node)) {
-                //errs() << *CBN << "\n";
-                //errs() << "-----------------------\n";
-
-                /// if no parameters
-                if (CBN->getActualParms().size() == 0)
-                    continue;
-
-                /// if all are constants
-                isConstant = true;
-                for (auto P: CBN->getActualParms()) {
-                    //errs() << "Param = " << *P->getValue() << "\n";
-                    if(!SVFUtil::isa<Constant>(P->getValue())) {
-                        isConstant = false;
-                        break;
-                    }
-                }
-                /// skip if all params are constant
-                if (isConstant) {
-                    //errs() << "Constant params found\n";
-                    continue;
-                }
-                //errs() << "Non-constant params found\n";
-                //errs() << "-----------------------\n";
-            }
-        }*/
-
-        /// for all incoming edges, get the source nodes and look for them
-        for (ICFGNode::const_iterator it = node->InEdgeBegin(), eit =
-                node->InEdgeEnd(); it != eit; ++it) {
+        /// for all incoming edges, get the source nodes and insert them into the worklist
+        for (ICFGNode::const_iterator it = node->InEdgeBegin(), eit = node->InEdgeEnd(); it != eit; ++it) {
             ICFGEdge *edge = *it;
             ICFGNode *srcNode = edge->getSrcNode();
 
@@ -466,7 +274,9 @@ auto getNumCmpsInPath(vector<const ICFGNode *> P) {
 
 auto getCmpPaths(const ICFGNode *icfgNode) {
     vector<vector<const ICFGNode *>> toReturn;
-    bool isConstant, haveNewNode;
+    bool haveNewNode;
+    auto numBackwardCmpPaths = getNumBackwardCmpPaths();
+    auto numNodeInPathToConsider = getNumNodesInPath();
 
     queue<vector<const ICFGNode *>> worklist;
     vector<const ICFGNode *> path;
@@ -479,13 +289,11 @@ auto getCmpPaths(const ICFGNode *icfgNode) {
         worklist.pop();
 
         toReturn.push_back(curPath);
-        //for (auto item: curPath)
-        //    errs() << item->getId() << " ";
-        //errs() << "\n";
+
+        if (curPath.size() > numNodeInPathToConsider)
+            continue;
 
         auto node = curPath[curPath.size()-1];
-        //errs() << "ICFG: " << *node << "\n";
-        //errs() << node->getId() << " ";
 
         if (node->getNodeKind() == ICFGNode::IntraBlock) {
             if (auto *IBN = SVFUtil::dyn_cast<IntraBlockNode>(node)) {
@@ -493,7 +301,7 @@ auto getCmpPaths(const ICFGNode *icfgNode) {
                     /// If we found a cmp instruction, insert it into our list
                     if (I->getOpcode() == Instruction::ICmp || I->getOpcode() == Instruction::FCmp) {
                         //errs() << *I << "\n";
-                        if (getNumCmpsInPath(curPath) >= BACKWARD_CMP_PATHS)
+                        if (getNumCmpsInPath(curPath) >= numBackwardCmpPaths)
                             continue;
                     }
 
@@ -640,7 +448,7 @@ auto assignDepth(const ICFGNode *firstNode, u64_t depth) {
         }
     }
 
-    errs() << "Total traversed = " << visited.size() << "\n";
+    LLVM_DEBUG(dbgs() << "Total traversed = " << visited.size() << "\n");
 
     return NodeDepths;
 }
@@ -680,33 +488,6 @@ pair<int64_t, int64_t> approximateBound(Set<const ICFGNode*> cmpNodes) {
     return make_pair(approxLowerBound, approxUpperBound);
 }
 
-auto computeDPPScore(Set<const ICFGNode*> cmpNodes, vector<vector<const ICFGNode *>> cmpPaths) {
-    int32_t score = 0;
-
-    /// if no cmp instructions, then update score and return
-    if (cmpNodes.size() == 0) {
-        score += NO_CMP;
-        return score;
-    }
-
-    /// if there is at least one cmp instruction
-    score += YES_CMP;
-
-    /// get the lower and upper constant bounds, LONG_MAX or LONG_MIN if not present
-    auto bounds = approximateBound(cmpNodes);
-    ///bound.first = lower bound, bound.second == upper bound
-    errs() << "lower bound = " << bounds.first << ", upper bound = " << bounds.second << "\n";
-
-    // if no bound is present
-    if (bounds.first == LONG_MAX && bounds.second == LONG_MIN) {
-        score += HAVE_VARIABLE_BOUND;
-    } else {
-        score += HAVE_CONSTANT_BOUND;
-    }
-
-    return score;
-}
-
 auto computePointerScore(int totalPaths, int relevantPaths, BoundApproxType BT) {
     int32_t score = 0;
     int32_t scale = 5;
@@ -718,39 +499,35 @@ auto computePointerScore(int totalPaths, int relevantPaths, BoundApproxType BT) 
     }
 
     /// score based on bound approximation
-    if (BT == BoundApproxType::NONE)
-        score += HAVE_NONE_BOUND;
-    else if (BT == BoundApproxType::VARIABLE)
+    if (BT == BoundApproxType::VARIABLE)
         score += HAVE_VARIABLE_BOUND;
     else
         score += HAVE_CONSTANT_BOUND;
 
-    /// score based safe vs unsafe uses
-    //todo
+    /// todo: score based safe vs unsafe uses
 
     return score;
 }
 
-bool score_compare(DPPScore *a, DPPScore *b) {
-    return a->Score < b->Score;
-};
+bool IsDataPointerTmp(const Type *const T) {
+    if (T && T->isPointerTy() && !T->isFunctionTy())
+        return true;
 
-void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
-    // Rule 7: data pointers dependent on external source
-    // External sources in this case are function calls
+    if (T && T->isArrayTy() && !T->isFunctionTy())
+        return true;
 
-    // Initialize the manually inserted input reading functions
+    return false;
+}
+
+DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
     Rule1Init();
 
-    //svfg->dump("/home/salman/DPP/data/rules-minimal/rule1/rule1-svfg", true);
-    //svfg->dump("/home/salman/DPP/data/ghttpd-1.4/ghttpd-svfg", true);
-
-    /// construct the ICFG graph to get the compare instructions to approximate whether a variable or
-    /// memory allocation is bounded or not
+    /// construct the ICFG graph to get the compare instructions to approximate whether
+    /// a variable or memory allocation is bounded or not
     ICFG *icfg = pag->getICFG();
-    //icfg->dump("/home/salman/DPP/data/rules-minimal/rule1/rule1-icfg2", true);
-    errs() << "First node = " << *icfg->begin()->second << "\n";
-    errs() << "Total nodes = " << icfg->getTotalNodeNum() << "\n";
+
+    LLVM_DEBUG(dbgs() << "First node = " << *icfg->begin()->second << "\n");
+    LLVM_DEBUG(dbgs() << "Total nodes = " << icfg->getTotalNodeNum() << "\n");
 
     /// get the entry block using global block node, the entry block is the parent of global block
     auto gBN = icfg->getGlobalBlockNode();
@@ -776,40 +553,42 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
         PTACallGraph::FunctionSet callees;
         callgraph->getCallees(CS,callees);
         for(auto func : callees) {
-            //errs() << func->getName() << "\n";
-
             if (isInputReadingFunction(func->getName())) {
-                errs() << func->getName() << " " << getInputArgStart(func->getName()) << "\n";
+                LLVM_DEBUG(dbgs() << func->getName() << "\n");
+
                 unsigned int paramIndex = 0;
                 for (auto P: CS->getActualParms()) {
-                    /// skip until the meaning params come
-                    /// todo: may be consider all params would be easier to construct the input functions?
-                    if (paramIndex < getInputArgStart(func->getName())) {
-                        paramIndex++;
-                        continue;
-                    }
-
-                    errs() << "Param " << paramIndex << ": " << *P << "\n";
+                    LLVM_DEBUG(dbgs() << "Param " << paramIndex << ": " << *P << "\n");
                     paramIndex++;
 
                     /// skip constant type parameter
-                    if(SVFUtil::isa<Constant>(P->getValue()))
+                    if(SVFUtil::isa<Constant>(P->getValue())) {
                         continue;
+                    }
 
-                    errs() << "SVFG Node ID = " << *svfg->getDefSVFGNode(P) << "\n";
+                    /// skip a variable that is deduced from constants, e.g., getelemetptr str_0, 0, 0
+                    if (!DPP::hasVariableOperand(P->getValue())) {
+                        continue;
+                    }
+
+                    LLVM_DEBUG(dbgs() << "SVFG Node ID = " << *svfg->getDefSVFGNode(P) << "\n");
 
                     /// update the taint list with all successors starting from the svf node of param P
                     auto r_PointsTo = updateTaintList(svfg, svfg->getDefSVFGNode(P));
 
+                    ///todo: might need to update here by changing how we get the points to set
                     // get the points-to set
                     NodeID pNodeId = svfg->getPAG()->getValueNode(P->getValue());
                     const NodeBS& pts = svfg->getPTA()->getPts(pNodeId);
                     for (unsigned int pt : pts)
                     {
+                        if (!svfg->getPAG()->hasGNode(pt))
+                            continue;
+
                         PAGNode* targetObj = svfg->getPAG()->getPAGNode(pt);
                         if(targetObj->hasValue())
                         {
-                            //errs() << *targetObj << "\n";
+                            LLVM_DEBUG(dbgs() << *targetObj << "\n");
                             m_PointsTo.insert(targetObj->getId());
                         }
                     }
@@ -820,19 +599,18 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
                     }
 
                 }
-                errs() << "----------------------------------------------------\n";
+                LLVM_DEBUG(dbgs() << "----------------------------------------------------\n");
             }
         }
-        // errs() << "--------------------\n";
     }
 
-    // Each invocation of updateTaintList() can have new points-to set
-    // So until the points-to set is empty, invoke the updateTaintList() function
+    /// Each invocation of updateTaintList() can have new points-to set
+    /// So until the points-to set is empty, invoke the updateTaintList() function
     NodeSet m_NewPointsTo;
     while (!m_PointsTo.empty()) {
-        errs() << "Total points-to = " << m_PointsTo.size() << "\n";
+        LLVM_DEBUG(dbgs() << "Total points-to = " << m_PointsTo.size() << "\n");
         for (auto item: m_PointsTo)
-            errs() << "Points TO ID = " << item << "\n";
+            LLVM_DEBUG(dbgs()  << "Points TO ID = " << item << "\n");
 
         m_NewPointsTo.clear();
         for (auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
@@ -843,16 +621,16 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
                 if (AVF->getICFGNode()->getId() == 0)
                     continue;
 
-                // update the taint list for points-to set populated in the input arguments
+                /// update the taint list for points-to set populated in the input arguments
                 if (m_PointsTo.find(AVF->getPAGSrcNodeID()) != m_PointsTo.end() ||
                     m_PointsTo.find(AVF->getPAGDstNodeID()) != m_PointsTo.end()) {
 
                     /// update the unsafe svf node
                     UnsafeSVFNodes.insert(AVF->getId());
 
-                    errs() << "****************UPDATE TAINT LIST START: " << AVF->getId() << "******************\n";
+                    LLVM_DEBUG(dbgs() << "***********UPDATE TAINT LIST START: " << AVF->getId() << "**************\n");
                     auto r_PointsTo = updateTaintList(svfg, AVF);
-                    errs() << "****************UPDATE TAINT LIST END******************\n";
+                    LLVM_DEBUG(dbgs() << "***********UPDATE TAINT LIST END*************\n");
 
                     for (auto item: r_PointsTo)
                         m_NewPointsTo.insert(item);
@@ -865,10 +643,11 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
             m_PointsTo.insert(item);
     }
 
+    /// to count the total number of data pointers
+    uint64_t totalMemObjects = 0;
 
     /// for each address taken memory allocation nodes, i.e., Address SVF nodes
     /// add the address SVF nodes to UnsafeSVFNodes if they depend on the tainted nodes
-    uint64_t totalDataPointers = 0; // to count the total number of data pointers
     for(auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
         VFGNode *V = SV->second;
         if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(V)) {
@@ -876,7 +655,6 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
             /// todo: revisit here regarding ID 0
             if (AVF->getICFGNode()->getId() == 0)
                 continue;
-
 
             /// count total number of data pointers
             Type *PTy = nullptr;
@@ -891,14 +669,10 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
                     }
                 }
             }
-            if (PTy && isDataPointer(PTy)) {
-                totalDataPointers++;
-            }
 
-            /// to check whether a node is being used as an argument to an input function
-            /// but the node does not have any dependency on other tainted nodes
-            /// that means the node is a source node
-            //bool isSourceNode = true; ///we still need to track it
+            if (PTy && IsDataPointerTmp(PTy)) {
+                totalMemObjects++;
+            }
 
             /// All the leftover nodes are instruction type
             if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
@@ -913,78 +687,42 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
                     /// if an operand is tainted, update the tainted list
                     if (TaintedSVFNodes.find(vNode->getId()) != TaintedSVFNodes.end()) {
                         vNode = getVFGNodeFromValue(pag, svfg, I);
-                        errs() << "ADDR: " << *vNode << "\n";
+                        LLVM_DEBUG(dbgs() << "ADDR: " << *vNode << "\n");
 
                         /// update the unsafe svf node
                         UnsafeSVFNodes.insert(vNode->getId());
 
-                        /// this is not a source node because the node's argument depends on user input
-                        //isSourceNode = false;
-
-                        errs() << "****************UPDATE TAINT LIST START: " << vNode->getId() << "******************\n";
+                        LLVM_DEBUG(dbgs() << "*********UPDATE TAINT LIST START: " << vNode->getId() << "*********\n");
                         updateTaintList(svfg, vNode);
-                        errs() << "****************UPDATE TAINT LIST END******************\n";
+                        LLVM_DEBUG(dbgs() << "*********UPDATE TAINT LIST END***********\n");
 
-                        /// no need to look further because vNode is for the whole instruction, other operand will
-                        /// also have the same instruction
+                        /// no need to look further because vNode is for the whole instruction,
+                        /// other operand will also have the same instruction
                         break;
                     }
                 }
             }
-
-            /// remove a source AddrVFG node from the UnsafeSVFNodes if it's present there
-            //if ( isSourceNode && UnsafeSVFNodes.find(AVF->getId()) != UnsafeSVFNodes.end())
-            //    UnsafeSVFNodes.erase(AVF->getId());
         }
     }
 
-    //for (auto ID: TaintedSVFNodes) {
-    //errs() << "ID = " << ID << " " << *svfg->getSVFGNode(ID) << "\n";
-    //}
+    /// write some logs to file
+    string dppLog = "#################### RULE 1 #########################\n";
 
-    /*
-    bool isFoundCondition = false;
-    for(auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
-        //errs() << SV->first << " " << *SV->second << "\n";
-        VFGNode *V = SV->second;
-        if (AddrVFGNode *AVFG = SVFUtil::dyn_cast<AddrVFGNode>(V)) {
-            // to discard the function and global constant type nodes
-            if (AVFG->getICFGNode()->getId() == 0) //todo: revisit here regarding ID 0
-                continue;
-            errs() << *AVFG << "\n";
+    /// to return the resultant prioritized dpp along with their scores
+    DenseMap<const Value *, int32_t> R;
 
-            // All the leftover nodes are instruction type
-            if (const Instruction *I = SVFUtil::dyn_cast<Instruction>(AVFG->getInst())) {
-                //errs() << *I << "\n";
-                //errs() << I->getNumOperands() << "\n";
-                const VFGNode* vNode = getVFGNodeFromValue(pag, svfg, I);
-                //errs() << "VFGNode = " << *vNode << "\n";
-                // look for condition starting from vNode
-                //errs() << "****************LOOKUP CONDITION START******************\n";
-                //isFoundCondition = lookForCondition(vNode);
-                //errs() << "****************LOOKUP CONDITION END******************\n";
-                //errs() << "Found condition = " << isFoundCondition << "\n";
-                //if (isFoundCondition)
-                    //SafeSVFNodes.try_emplace(vNode, isFoundCondition);
-            }
-        }
-    }*/
-
-    //for (auto VFG : SafeSVFNodes)
-    //   errs() << *VFG.getFirst() << ", found condition = " << VFG.getSecond() << "\n";
-
-
-    Set<DPPScore *> PtrScores;
-    DPPScore *PtrScore = NULL;
-    uint64_t inputDependentDP = 0;
+    /// At this point, we have all the unsafe nodes. We loop through all the unsafe nodes,
+    /// check if the nodes are bounded using compare instructions.
+    uint64_t inputDepObjs = 0;
     for (auto ID: UnsafeSVFNodes) {
+
         const auto SVFNode = svfg->getSVFGNode(ID);
-        uint32_t nodeDepth = DepthMap.lookup(SVFNode->getICFGNode()->getId());
-        errs() << *SVFNode << ", Depth = " << DepthMap.lookup(SVFNode->getICFGNode()->getId()) << "\n";
+        //uint32_t nodeDepth = DepthMap.lookup(SVFNode->getICFGNode()->getId());
+        //errs() << *SVFNode << ", Depth = " << DepthMap.lookup(SVFNode->getICFGNode()->getId()) << "\n";
+
         Type *PTy = NULL;
         if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(SVFNode)) {
             if (const Instruction *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
-
                 if (I->getOpcode() == Instruction::Alloca) {
                     if (const AllocaInst *AI = SVFUtil::dyn_cast<AllocaInst>(I)) {
                         PTy = AI->getAllocatedType();
@@ -994,121 +732,69 @@ void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
                         PTy = CI->getCalledFunction()->getReturnType();
                     }
                 }
-            }
-        }
-        if (PTy && isDataPointer(PTy)) {
-            //errs() << "This node has unsafe data pointer!" << "\n";
 
-            inputDependentDP++;
+                /// if the type is data pointer
+                if (PTy && DPP::isDataPointer(PTy)) {
+                    inputDepObjs++;
 
-            /// getting all the reachable nodes reachable from either the svf node or its param nodes
-            auto reachableNodes = getReachableNodes(SVFNode, pag, svfg);
+                    /// getting all the reachable nodes reachable from either the svf node or its param nodes
+                    auto reachableNodes = getReachableNodes(SVFNode, pag, svfg);
 
-            /// getting all the cfg paths ended up with the svf node
-            auto cmpPaths = getCmpPaths(SVFNode->getICFGNode());
-            auto totalPaths = cmpPaths.size();
-            auto totalRelevantCmpPaths = 0; ///paths with data dependent cmp instructions
+                    /// getting all the cfg paths ended up with the svf node
+                    auto cmpPaths = getCmpPaths(SVFNode->getICFGNode());
+                    auto totalPaths = cmpPaths.size();
+                    auto totalRelevantPaths = 0; ///paths with data dependent cmp instructions
 
-            for (auto path: cmpPaths) {
-                for (auto node: path) {
-                    if (node->getNodeKind() == ICFGNode::IntraBlock) {
-                        if (auto *IBN = SVFUtil::dyn_cast<IntraBlockNode>(node)) {
-                            if (const Instruction *I = SVFUtil::dyn_cast<Instruction>(IBN->getInst())) {
-                                if (I->getOpcode() == Instruction::ICmp || I->getOpcode() == Instruction::FCmp) {
-                                    if (checkCommonAncestor(node->getVFGNodes(), reachableNodes)) {
-                                        totalRelevantCmpPaths++;
-                                        break;
+                    /// computing the number of paths that have relevant compare instructions
+                    for (auto path: cmpPaths) {
+                        for (auto node: path) {
+                            if (node->getNodeKind() == ICFGNode::IntraBlock) {
+                                if (auto *IBN = SVFUtil::dyn_cast<IntraBlockNode>(node)) {
+                                    if (const Instruction *I = SVFUtil::dyn_cast<Instruction>(IBN->getInst())) {
+
+                                        if (I->getOpcode() == Instruction::ICmp ||
+                                            I->getOpcode() == Instruction::FCmp) {
+
+                                            if (checkCommonAncestor(node->getVFGNodes(), reachableNodes)) {
+                                                totalRelevantPaths++;
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+
+                    /// getting the compare instruction to see if the data pointer is bounded
+                    auto cmpNodes = getCmpInstructions(SVFNode->getICFGNode());
+
+                    BoundApproxType BT;
+                    auto bounds = approximateBound(cmpNodes);
+                    if (bounds.first != LONG_MAX && bounds.second != LONG_MIN)
+                        BT = BoundApproxType::CONSTANT;
+                    else
+                        BT = BoundApproxType::VARIABLE;
+
+                    /// computing pointer score for prioritization
+                    auto score = computePointerScore(totalPaths, totalRelevantPaths, BT);
+
+                    dppLog += SVFNode->toString() + "\n";
+                    dppLog += "Yes, " + std::to_string(totalPaths) + ", " + std::to_string(totalRelevantPaths) + ", "
+                            + std::to_string(BT) + " (" + std::to_string(bounds.first) + ", "
+                            + std::to_string(bounds.second) + "), " + std::to_string(score) + "\n";
+                    dppLog += "--------------------------------------------------------------\n";
+
+                    /// storing the score so that we can pass the result
+                    R.try_emplace(I, score);
                 }
             }
-
-            //errs() << "Number of paths = " << totalPaths << ", relevant cmp paths = " << totalRelevantCmpPaths << "\n";
-
-            /// getting the compare instruction to see if the data pointer is bounded
-            auto cmpNodes = getCmpInstructions(SVFNode->getICFGNode());
-            Set<const ICFGNode *> filteredCmpNodes;
-
-            for (auto item: cmpNodes) {
-                ///skip all the cmps that come after the current node
-                if (DepthMap.lookup(item->getId()) > nodeDepth)
-                    continue;
-
-                if (checkCommonAncestor(item->getVFGNodes(), reachableNodes)) {
-                    //errs() << *item << ", Depth = " << DepthMap.lookup(item->getId()) << "\n";
-                    filteredCmpNodes.insert(item);
-                }
-            }
-
-            BoundApproxType BT = BoundApproxType::NONE;
-            auto bounds = approximateBound(cmpNodes);
-            if (bounds.first != LONG_MAX && bounds.second != LONG_MIN)
-                BT = BoundApproxType::CONSTANT;
-            else
-                BT = BoundApproxType::VARIABLE;
-
-
-            //todo: safe usage score if possible
-
-            //auto score = computeDPPScore(filteredCmpNodes, cmpPaths);
-            auto score = computePointerScore(totalPaths, totalRelevantCmpPaths, BT);
-
-
-            PtrScore = static_cast<DPPScore *>(malloc(sizeof(DPPScore)));
-            PtrScore->ID = ID;
-            PtrScore->Score = score;
-            PtrScores.insert(PtrScore);
-
-            errs() << ID << ", Yes, " << totalPaths << ", " << totalRelevantCmpPaths << ", " << BT << "(" <<
-                   bounds.first << ", " << bounds.second << "), " << score << "\n";
-        }
-        else {
-            //errs() << "This node is safe!" << "\n";
-            errs() << ID << ", No, -, -, -, -" << "\n";
         }
     }
 
-    errs() << "Total pointers = " << totalDataPointers << ", input dependent pointers = " << inputDependentDP << "\n";
+    dppLog += "##################################################\n\n\n";
+    DPP::writeDPPLogsToFile(dppLog);
 
-    //for (auto item: PtrScores)
-    //  errs() << item->ID << " " << item->Score << "\n";
-
-    /*
-    // for each address taken object, determine the sensitive data pointers
-    for(auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
-        VFGNode *V = SV->second;
-        if (AddrVFGNode *AVFG = SVFUtil::dyn_cast<AddrVFGNode>(V)) {
-            //errs() << AVFG->getPAGEdge()->getValue()->getName() << "\n";
-
-            // to discard the svfg nodes that contains the whole functions
-            if (AVFG->getICFGNode()->getId() == 0) //todo: revisit here regarding ID 0
-                continue;
-
-            auto Ty = AVFG->getPAGEdge()->getValue()->getType();
-            if (Ty && Ty->isPointerTy()) {
-                errs() << *AVFG << "\n";
-                errs() << *AVFG->getPAGEdge()->getValue()->getType() << "\n";
-                errs() << *Ty->getPointerElementType() << "\n";
-                if (isDataPointer(Ty->getPointerElementType())) {
-                    PAGNode* pNode = pag->getPAGNode(pag->getValueNode(AVFG->getPAGEdge()->getValue()));
-                    const VFGNode* vNode = svfg->getDefSVFGNode(pNode);
-
-                    if (InputSVFGNodes.find(vNode->getId()) != InputSVFGNodes.end()) {
-                        errs() << "Sensitive data pointer = " << *AVFG->getPAGEdge()->getValue() << "\n";
-                        //errs() << "Found sensitive data pointer = " << *vNode << "\n";
-                    } else {
-                        errs() << "Non-sensitive data pointer = " << *AVFG->getPAGEdge()->getValue() << "\n";
-                    }
-
-                }
-            }
-        }
-
-    }
-    */
+    return R;
 }
 
 
@@ -1116,42 +802,28 @@ AnalysisKey DPPRule1G::Key;
 [[maybe_unused]] const char DPPRule1G::RuleName[] = "DPPRule1G";
 
 DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
-  Result Result {};
+    Result Result{};
 
-  SVFModule *SVFModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
+    auto R = AM.getResult<SVFInitPass>(M);
 
-  PAGBuilder Builder;
-  PAG *PAG = Builder.build(SVFModule);
+    PAG *pag = R.SVFParams.pag;
+    PTACallGraph *CallGraph = R.SVFParams.CallGraph;
+    SVFG *svfg = R.SVFParams.svfg;
 
-  Andersen *Andersen = AndersenWaveDiff::createAndersenWaveDiff(PAG);
+    auto DPointers = Rule1Global(pag, CallGraph, svfg);
+    for(auto Ptr: DPointers) {
+        Result.PrioritizedPtrMap.try_emplace(Ptr.getFirst(), Ptr.getSecond());
+    }
 
-  PTACallGraph *Callgraph = Andersen->getPTACallGraph();
-
-//   PTACallGraphNode *CGNode = nullptr;
-
-//   for (auto CG = Callgraph->begin(), end = Callgraph->end(); CG != end; ++CG) {
-//       CGNode = CG->second;
-//       if (CGNode->getFunction()->getName() == "malloc")
-//           break;
-//   }
-
-//   ICFG* ICFG = PAG->getICFG();
-
-//   for (auto it = PAG->getCallSiteRets().begin(),
-//             end = PAG->getCallSiteRets().end();
-//        it != end; ++it) {
-//     const RetBlockNode *cs = it->first;
-//   }
-
-  SVFGBuilder SVFGBuilder;
-  SVFG *SVFG = SVFGBuilder.buildFullSVFGWithoutOPT(Andersen);
-
-  Rule1Global(PAG, Callgraph, SVFG);
-
-  return Result;
+    return Result;
 }
 
 raw_ostream &DPPRule1GResult::print(raw_ostream &OS) const {
-  OS << "not implemented\n\n";
-  return OS;
+    OS << "Prioritized data objects by Rule 1:\n";
+    for (auto Ptr : PrioritizedPtrMap) {
+        auto *const I = Ptr.getFirst();
+        auto score = Ptr.getSecond();
+        OS << *I << ", score = " << score << "\n";
+    }
+    return OS;
 }

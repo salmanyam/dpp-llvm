@@ -2428,3 +2428,5 @@ def int_aarch64_sve_whilewr_b : SVE2_CONFLICT_DETECT_Intrinsic;
 def int_aarch64_sve_whilewr_h : SVE2_CONFLICT_DETECT_Intrinsic;
 def int_aarch64_sve_whilewr_s : SVE2_CONFLICT_DETECT_Intrinsic;
 def int_aarch64_sve_whilewr_d : SVE2_CONFLICT_DETECT_Intrinsic;
+
+include "llvm/DPP/Intrinsics.td"

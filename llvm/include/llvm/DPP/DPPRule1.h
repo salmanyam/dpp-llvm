@@ -5,6 +5,7 @@
 #ifndef DPP_DPPRULE1_H
 #define DPP_DPPRULE1_H
 
+#include "llvm/DPP/DPPUtils.h"
 #include "llvm/DPP/DPPRule.h"
 
 namespace SVF {
@@ -35,8 +36,7 @@ typedef struct DPPScore_t {
 } DPPScore;
 
 enum BoundApproxType {
-    NONE = 0,
-    VARIABLE,
+    VARIABLE = 0,
     CONSTANT
 };
 
@@ -48,7 +48,7 @@ typedef struct InputFunction_t {
 
 using InputFunctionMap = DenseMap<StringRef, InputFunction *>;
 
-void Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg);
+DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg);
 
 
 namespace llvm {
@@ -58,30 +58,31 @@ class DPPRule1G;
 class DPPRule1GResult;
 
 class DPPRule1G : public AnalysisInfoMixin<DPPRule1G> {
-  friend AnalysisInfoMixin<DPPRule1G>;
+    friend AnalysisInfoMixin<DPPRule1G>;
 public:
-  using Result = DPPRule1GResult;
+    using Result = DPPRule1GResult;
 
-  static const char RuleName[];
-  static AnalysisKey Key;
+    static const char RuleName[];
+    static AnalysisKey Key;
 
-  Result run(Module &M, AnalysisManager<Module> &AM);
+    Result run(Module &M, AnalysisManager <Module> &AM);
 };
 
 class DPPRule1GResult : public DPPResult<DPPRule1G> {
-  friend DPPRule1G;
+    friend DPPRule1G;
 public:
-private:
+    llvm::DPP::DPPMap PrioritizedPtrMap;
 public:
-  DPPRule1GResult() {}
-  raw_ostream &print(raw_ostream &OS) const;
+    DPPRule1GResult() {}
+
+    raw_ostream &print(raw_ostream &OS) const;
 };
 
 class [[maybe_unused]] DPPRule1GPrinterPass
     : public DPPGlobalPrinterPass<DPPRule1G> {
 public:
-  [[maybe_unused]] DPPRule1GPrinterPass(raw_ostream &OS)
-      : DPPGlobalPrinterPass(OS) {}
+    [[maybe_unused]] DPPRule1GPrinterPass(raw_ostream &OS)
+            : DPPGlobalPrinterPass(OS) {}
 };
 
 } // namespace DPP

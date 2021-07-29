@@ -7865,3 +7865,4 @@ include "AArch64InstrAtomics.td"
 include "AArch64SVEInstrInfo.td"
 
 include "AArch64InstrGISel.td"
+include "llvm/DPP/AArch64InstInfo.td"
