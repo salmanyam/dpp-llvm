@@ -11,6 +11,7 @@ add_llvm_component_library(DPP
   DPPRule9.cpp
   DPPUtils.cpp
   DPPInstr.cpp
+  DPPWhiteList.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${SVF_SOURCE_DIR}/include

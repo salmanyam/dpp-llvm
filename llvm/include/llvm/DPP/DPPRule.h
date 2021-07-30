@@ -55,7 +55,7 @@ template <typename AnalysisT,
         typename AnalysisT::Result>::value, AnalysisT>>
 class DPPGlobalPrinterPass
     : public PassInfoMixin<DPPGlobalPrinterPass<AnalysisT>> {
-private:
+protected:
   raw_ostream &OS;
 
 public:
