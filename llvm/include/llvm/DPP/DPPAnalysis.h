@@ -12,6 +12,13 @@
 #define LLVM_ANALYSIS_DPP_DPPANALYSIS_H
 
 #include "llvm/DPP/DPP.h"
+#include "llvm/DPP/DPPUtils.h"
+
+namespace SVF {
+    class PAG;
+    class VFGNode;
+    class SVFG;
+} // namespace SVF
 
 namespace llvm {
 namespace DPP {
@@ -35,6 +42,10 @@ class DPPAnalysis : public AnalysisInfoMixin<DPPAnalysis> {
 public:
   using Result = DPPAnalysisResult;
   Result run(Module &M, AnalysisManager<Module> &AM);
+  ValSet getPointersToObject(const Value *Val, SVF::SVFG *svfg);
+  std::pair<ValSet, uint32_t> getTotalDataPointers(SVF::SVFG *svfg);
+  ValSet getDataPointersToObjects(DPPMap Map, SVF::SVFG *svfg);
+  ValSet getDataObjects(DPPMap Map);
 };
 
 class DPPAnalysisPrinterPass : public PassInfoMixin<DPPAnalysisPrinterPass> {

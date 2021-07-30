@@ -12,7 +12,15 @@
 #define LLVM_ANALYSIS_DPP_DPPRULE6_H
 
 #include "llvm/DPP/DPPRule.h"
+#include "llvm/DPP/DPPUtils.h"
+
 #include "llvm/IR/PassManager.h"
+
+namespace SVF {
+    class PAG;
+    class VFGNode;
+    class SVFG;
+} // namespace SVF
 
 namespace llvm {
 namespace DPP {
@@ -36,7 +44,7 @@ class DPPRule5LResult : public DPPResult<DPPRule5L> {
   friend DPPRule5L;
 public:
   using BadLocalsMap = DenseMap<AllocaInst *, StringRef>;
-private:
+public:
   BadLocalsMap BadLocals;
 public:
   DPPRule5LResult() {}
@@ -53,6 +61,7 @@ public:
   static AnalysisKey Key;
 
   Result run(Module &M, AnalysisManager<Module> &AM);
+  const SVF::VFGNode* getVFGNodeFromValue(SVF::PAG *pag, SVF::SVFG *svfg, const Value *val);
 };
 
 class DPPRule5GResult : public DPPResult<DPPRule5G> {
@@ -60,9 +69,10 @@ class DPPRule5GResult : public DPPResult<DPPRule5G> {
 public:
   using BadGlobalsMap = DenseMap<GlobalValue *, StringRef>;
   using FunctionInfoMap= DenseMap<Function *, DPPRule5LResult *>;
-private:
+public:
   BadGlobalsMap BadGlobals;
   FunctionInfoMap FunctionInfo;
+  llvm::DPP::DPPMap PrioritizedPtrMap;
 public:
   DPPRule5GResult() {}
   bool empty() { return BadGlobals.empty() && FunctionInfo.empty(); }

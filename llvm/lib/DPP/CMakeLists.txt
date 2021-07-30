@@ -1,8 +1,16 @@
 add_llvm_component_library(DPP
-  DPPRule5.cpp
+  SVFInitPass.cpp
   DPPAnalysis.cpp
+  DPPRule1.cpp
+  DPPRule2.cpp
+  DPPRule3.cpp
   DPPRule5.cpp
+  DPPRule6.cpp
   DPPRule7.cpp
+  DPPRule8.cpp
+  DPPRule9.cpp
+  DPPUtils.cpp
+  DPPInstr.cpp
   DPPWhiteList.cpp
 
   ADDITIONAL_HEADER_DIRS

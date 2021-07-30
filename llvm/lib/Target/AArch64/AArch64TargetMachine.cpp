@@ -36,6 +36,7 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
+#include "llvm/DPP/DPPUtils.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/CommandLine.h"
@@ -689,6 +690,10 @@ void AArch64PassConfig::addPreEmitPass() {
 
   // SVE bundles move prefixes with destructive operations.
   addPass(createUnpackMachineBundles(nullptr));
+
+  // DPP related pass
+  if (DPP::useDpi())
+    addPass(createDppPassDpi());
 }
 
 yaml::MachineFunctionInfo *
