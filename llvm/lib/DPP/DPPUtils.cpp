@@ -13,6 +13,8 @@
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/Andersen.h"
 
+#define DEBUG_TYPE "DPPUtils"
+
 using namespace llvm;
 using namespace llvm::DPP;
 using namespace SVF;
