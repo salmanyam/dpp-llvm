@@ -329,35 +329,16 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
 
     auto R = AM.getResult<SVFInitPass>(M);
 
+    LLVM_DEBUG(dbgs() << "Starting rule 9...\n");
+
     PAG *pag = R.SVFParams.pag;
     PTACallGraph *CallGraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
 
-
-    /// construct the ICFG graph to get the compare instructions to approximate whether
-    /// a variable or memory allocation is bounded or not
-    ICFG *icfg = pag->getICFG();
-
-    LLVM_DEBUG(dbgs() << "First node = " << *icfg->begin()->second << "\n");
-    LLVM_DEBUG(dbgs() << "Total nodes = " << icfg->getTotalNodeNum() << "\n");
-
-    /// get the entry block using global block node, the entry block is the parent of global block
-    auto gBN = icfg->getGlobalBlockNode();
-    ICFGNode *entryBlock = nullptr;
-    for (auto it = gBN->InEdgeBegin(), eit = gBN->InEdgeEnd(); it != eit; ++it) {
-        ICFGEdge *edge = *it;
-        entryBlock = edge->getSrcNode();
-        break;
-    }
-    assert(entryBlock != nullptr && "Entry block node in ICFG is NULL, can't assign depth!");
-
-    /// assigned depth to each node of the ICFG to determine the compare for bound check because
-    /// there might be multiple compare instructions for a single variable
-    auto DepthMap = assignDepth(entryBlock, 0);
+    LLVM_DEBUG(dbgs() << "Finding the allocation sites...\n");
 
 
     Set<const SVFGNode*> SVFGAllocationNodeSet;
-
     for(PAG::CSToRetMap::iterator it = pag->getCallSiteRets().begin(),
                 eit = pag->getCallSiteRets().end(); it!=eit; ++it) {
         const RetBlockNode *cs = it->first;
@@ -483,15 +464,12 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
         }
     }
 
+    LLVM_DEBUG(dbgs() << "Checking the whether the allocation sites are bounded or not...\n");
+
     /// write some logs to file
     string dppLog = "#################### RULE 9 #########################\n";
 
     for (auto Node: SVFGAllocationNodeSet) {
-        //errs() << *Node << "\n";
-        //errs() << *Node->getFun() << "\n";
-
-        uint32_t nodeDepth = DepthMap.lookup(Node->getICFGNode()->getId());
-
         /// getting all the reachable nodes reachable from either the svf node or its param nodes
         set<uint32_t> reachableNodes = getReachableNodes(Node, pag, svfg);
 

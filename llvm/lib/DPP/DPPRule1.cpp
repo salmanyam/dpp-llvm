@@ -29,7 +29,6 @@ InputFunctionMap InputFunctions;
 NodeSet InputSVFGNodes;
 NodeSet TaintedSVFNodes;
 NodeSet UnsafeSVFNodes;
-DenseMap<const VFGNode *, bool> SafeSVFNodes;
 
 
 void Rule1Init() {
@@ -39,9 +38,6 @@ void Rule1Init() {
     InputSVFGNodes.clear();
     TaintedSVFNodes.clear();
     UnsafeSVFNodes.clear();
-
-    // clear the SVF nodes from dataset
-    SafeSVFNodes.clear();
 
     // clear and obtain input functions
     InputFunctions.clear();
@@ -75,9 +71,7 @@ const VFGNode* getVFGNodeFromValue(PAG *pag, SVFG *svfg, const Value *val) {
  * This function traverse the SVF graph and collect taint list
  * by following nodes that are dependent on user input
  */
-NodeSet updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
-    NodeSet m_PointsTo;
-
+void updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
     FIFOWorkList<const VFGNode*> worklist;
     Set<const VFGNode*> visited;
 
@@ -89,6 +83,7 @@ NodeSet updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
     {
         const VFGNode* vNode = worklist.pop();
         LLVM_DEBUG(dbgs() << "TAINTING: " << *vNode << "\n");
+        //errs() << "TAINTING: " << *vNode << "\n";
 
         TaintedSVFNodes.insert(vNode->getId());
 
@@ -110,46 +105,34 @@ NodeSet updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
         // if the VFG node is a store and if the first param is stored on the second param of a store instruction,
         // then include the second param as well.
         if (vNode->getNodeKind() == VFGNode::VFGNodeK::Store) {
-            const auto *SVFG = SVFUtil::dyn_cast<StoreVFGNode>(vNode);
+            if(const auto *StVFG = SVFUtil::dyn_cast<StoreVFGNode>(vNode)) {
+                if (StVFG->getInst() != nullptr) {
+                    if(const auto *SI = SVFUtil::dyn_cast<StoreInst>(StVFG->getInst())) {
+                        // we know the instruction is store, so get the second operand
+                        auto Operand2 = SI->getOperand(1);
 
-            // we know the instruction is store, so get the second operand
-            auto Operand2 = SVFG->getInst()->getOperand(1);
+                        // fetch the predecessor nodes and compare the operand2
+                        for (auto it = vNode->InEdgeBegin(), eit = vNode->InEdgeEnd(); it != eit; ++it) {
+                            VFGEdge *edge = *it;
 
-            // fetch the predecessor nodes and compare the operand2
-            for (auto it = vNode->InEdgeBegin(), eit = vNode->InEdgeEnd(); it != eit; ++it) {
-                VFGEdge *edge = *it;
+                            // if storing to a variable indirectly, discard it for now
+                            // todo: visit here to think about the indirect store
+                            if (edge->isIndirectVFGEdge())
+                                continue;
 
-                // if storing to a variable indirectly, discard it for now
-                // todo: visit here to think about the indirect store
-                if (edge->isIndirectVFGEdge())
-                    continue;
+                            VFGNode *predNode = edge->getSrcNode();
 
-                VFGNode *predNode = edge->getSrcNode();
-
-                // no need to consider the already visited one
-                if (visited.find(predNode) == visited.end()) {
-                    // Only considering the statement nodes
-                    // todo: revisit here to consider other nodes such as memory region and params
-                    if(auto *Smt = SVFUtil::dyn_cast<StmtVFGNode>(predNode)) {
-                        // Insert this node if the following is true, i.e.,
-                        // user dependent variable is being stored in operand2
-                        if (Smt->getInst() == Operand2) {
-                            worklist.push(Smt);
-                            visited.insert(Smt);
-
-                            // get the points-to set
-                            NodeID pNodeId = svfg->getPAG()->getValueNode(Operand2);
-                            const NodeBS& pts = svfg->getPTA()->getPts(pNodeId);
-                            for (unsigned int pt : pts)
-                            {
-                                if (!svfg->getPAG()->hasGNode(pt))
-                                    continue;
-
-                                PAGNode* targetObj = svfg->getPAG()->getPAGNode(pt);
-                                if(targetObj->hasValue())
-                                {
-                                    //errs() << *targetObj << "\n";
-                                    m_PointsTo.insert(targetObj->getId());
+                            // no need to consider the already visited one
+                            if (visited.find(predNode) == visited.end()) {
+                                // Only considering the statement nodes
+                                // todo: revisit here to consider other nodes such as memory region and params
+                                if(auto *Smt = SVFUtil::dyn_cast<StmtVFGNode>(predNode)) {
+                                    // Insert this node if the following is true, i.e.,
+                                    // user dependent variable is being stored in operand2
+                                    if (Smt->getInst() == Operand2) {
+                                        worklist.push(Smt);
+                                        visited.insert(Smt);
+                                    }
                                 }
                             }
                         }
@@ -158,7 +141,6 @@ NodeSet updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
             }
         }
     }
-    return m_PointsTo;
 }
 
 auto getReachableNodes(const VFGNode* vNode, PAG *pag, SVFG *svfg) {
@@ -519,8 +501,33 @@ bool IsDataPointerTmp(const Type *const T) {
     return false;
 }
 
+DenseSet<SVF::PAGNode *> getPointedObjectsByPtr(const Value *Ptr, SVFG *svfg) {
+    DenseSet<SVF::PAGNode *> pointsToObjects;
+    // get the points-to set
+    NodeID pNodeId = svfg->getPAG()->getValueNode(Ptr);
+    const NodeBS& pts = svfg->getPTA()->getPts(pNodeId);
+    for (unsigned int pt : pts)
+    {
+        if (!svfg->getPAG()->hasGNode(pt))
+            continue;
+
+        PAGNode* targetObj = svfg->getPAG()->getPAGNode(pt);
+        if(targetObj->hasValue())
+        {
+            LLVM_DEBUG(dbgs() << *targetObj << "\n");
+            pointsToObjects.insert(targetObj);
+        }
+    }
+    return pointsToObjects;
+}
+
 DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg) {
+    /// to return the resultant prioritized dpp along with their scores
+    DenseMap<const Value *, int32_t> R;
+
     Rule1Init();
+
+    LLVM_DEBUG(dbgs() << "Rule1 initialization done...\n");
 
     /// construct the ICFG graph to get the compare instructions to approximate whether
     /// a variable or memory allocation is bounded or not
@@ -528,6 +535,7 @@ DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, 
 
     LLVM_DEBUG(dbgs() << "First node = " << *icfg->begin()->second << "\n");
     LLVM_DEBUG(dbgs() << "Total nodes = " << icfg->getTotalNodeNum() << "\n");
+
 
     /// get the entry block using global block node, the entry block is the parent of global block
     auto gBN = icfg->getGlobalBlockNode();
@@ -539,15 +547,29 @@ DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, 
     }
     assert(entryBlock != nullptr && "Entry block node in ICFG is NULL, can't assign depth!");
 
-    /// assigned depth to each node of the ICFG to determine the compare for bound check because
-    /// there might be multiple compare instructions for a single variable
-    auto DepthMap = assignDepth(entryBlock, 0);
+    /// insert main function here
+    PTACallGraph::FunctionSet AllFunctions;
+    AllFunctions.insert(entryBlock->getFun());
 
-    /// track the points-to set of input function arguments
-    NodeSet m_PointsTo;
+    auto mainFunc = entryBlock->getFun()->getLLVMFun();
+    /// tainting argument of main function
+    if (mainFunc) {
+        LLVM_DEBUG(dbgs() << "Tainting main function = " << mainFunc->getName() << "...\n");
+        for(auto Arg = mainFunc->arg_begin(); Arg != mainFunc->arg_end(); ++Arg) {
+            //errs() << *Arg << "\n";
 
-    /// Get all call sites, filter input reading functions, and
-    /// mark the nodes dependent on input reading functions
+            if (auto *ArgVal = dyn_cast<Value>(Arg)) {
+                //errs() << "Arg value = " << *ArgVal << "\n";
+                const VFGNode *vfgNode = getVFGNodeFromValue(pag, svfg, ArgVal);
+                updateTaintList(svfg, vfgNode);
+            }
+        }
+    }
+
+    LLVM_DEBUG(dbgs() << "Tainting parameters of other functions...\n");
+
+    NodeSet alreadyTaintedObjVFGNode;
+    /// Filter input reading functions, and mark the nodes dependent on input reading functions
     for(const CallBlockNode *CS: pag->getCallSiteSet()) {
         /// get the names of the calle functions to filter input functions
         PTACallGraph::FunctionSet callees;
@@ -555,133 +577,69 @@ DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, 
         for(auto func : callees) {
             if (isInputReadingFunction(func->getName())) {
                 LLVM_DEBUG(dbgs() << func->getName() << "\n");
+                //errs() << "Function = " << func->getName() << "\n";
 
                 unsigned int paramIndex = 0;
                 for (auto P: CS->getActualParms()) {
                     LLVM_DEBUG(dbgs() << "Param " << paramIndex << ": " << *P << "\n");
+                    //errs() << "Param " << paramIndex << ": " << *P << "\n";
                     paramIndex++;
+
+                    /// skip dummy pag nodes
+                    if (!P->hasValue())
+                        continue;
 
                     /// skip constant type parameter
                     if(SVFUtil::isa<Constant>(P->getValue())) {
                         continue;
                     }
 
-                    /// skip a variable that is deduced from constants, e.g., getelemetptr str_0, 0, 0
-                    if (!DPP::hasVariableOperand(P->getValue())) {
+                    /// skip a constant getelemptr that is deduced from constants, e.g., getelemetptr str_0, 0, 0
+                    if (DPP::isConstantGetElemInst(P->getValue())) {
                         continue;
                     }
 
-                    LLVM_DEBUG(dbgs() << "SVFG Node ID = " << *svfg->getDefSVFGNode(P) << "\n");
+                    LLVM_DEBUG(dbgs() << "Param SVFGNode ID = " << *svfg->getDefSVFGNode(P) << "\n");
 
                     /// update the taint list with all successors starting from the svf node of param P
-                    auto r_PointsTo = updateTaintList(svfg, svfg->getDefSVFGNode(P));
+                    updateTaintList(svfg, svfg->getDefSVFGNode(P));
 
-                    ///todo: might need to update here by changing how we get the points to set
-                    // get the points-to set
-                    NodeID pNodeId = svfg->getPAG()->getValueNode(P->getValue());
-                    const NodeBS& pts = svfg->getPTA()->getPts(pNodeId);
-                    for (unsigned int pt : pts)
-                    {
-                        if (!svfg->getPAG()->hasGNode(pt))
-                            continue;
-
-                        PAGNode* targetObj = svfg->getPAG()->getPAGNode(pt);
-                        if(targetObj->hasValue())
-                        {
-                            LLVM_DEBUG(dbgs() << *targetObj << "\n");
-                            m_PointsTo.insert(targetObj->getId());
+                    /// get objects pointed by the operand and taint the objects and their successors
+                    auto objPointsToSet = getPointedObjectsByPtr(P->getValue(), svfg);
+                    for (auto Item: objPointsToSet) {
+                        const VFGNode *objVFGNode = getVFGNodeFromValue(pag, svfg, Item->getValue());
+                        if (TaintedSVFNodes.find(objVFGNode->getId()) == TaintedSVFNodes.end()) {
+                            updateTaintList(svfg, objVFGNode);
+                            alreadyTaintedObjVFGNode.insert(objVFGNode->getId());
                         }
                     }
-
-                    // merge two points-to sets
-                    for(auto item: r_PointsTo) {
-                        m_PointsTo.insert(item);
-                    }
-
                 }
                 LLVM_DEBUG(dbgs() << "----------------------------------------------------\n");
             }
         }
     }
 
-    /// Each invocation of updateTaintList() can have new points-to set
-    /// So until the points-to set is empty, invoke the updateTaintList() function
-    NodeSet m_NewPointsTo;
-    while (!m_PointsTo.empty()) {
-        LLVM_DEBUG(dbgs() << "Total points-to = " << m_PointsTo.size() << "\n");
-        for (auto item: m_PointsTo)
-            LLVM_DEBUG(dbgs()  << "Points TO ID = " << item << "\n");
+    LLVM_DEBUG(dgbs() << "Tainting address taken memory allocation nodes that have tainted dependency...\n");
 
-        m_NewPointsTo.clear();
-        for (auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
-            VFGNode *V = SV->second;
-            if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(V)) {
-                /// to discard the function and global constant type nodes
-                /// todo: revisit here regarding ID 0
-                if (AVF->getICFGNode()->getId() == 0)
-                    continue;
-
-                /// update the taint list for points-to set populated in the input arguments
-                if (m_PointsTo.find(AVF->getPAGSrcNodeID()) != m_PointsTo.end() ||
-                    m_PointsTo.find(AVF->getPAGDstNodeID()) != m_PointsTo.end()) {
-
-                    /// update the unsafe svf node
-                    UnsafeSVFNodes.insert(AVF->getId());
-
-                    LLVM_DEBUG(dbgs() << "***********UPDATE TAINT LIST START: " << AVF->getId() << "**************\n");
-                    auto r_PointsTo = updateTaintList(svfg, AVF);
-                    LLVM_DEBUG(dbgs() << "***********UPDATE TAINT LIST END*************\n");
-
-                    for (auto item: r_PointsTo)
-                        m_NewPointsTo.insert(item);
-                }
-            }
-        }
-        m_PointsTo.clear();
-
-        for (auto item: m_NewPointsTo)
-            m_PointsTo.insert(item);
-    }
-
-    /// to count the total number of data pointers
-    uint64_t totalMemObjects = 0;
-
-    /// for each address taken memory allocation nodes, i.e., Address SVF nodes
-    /// add the address SVF nodes to UnsafeSVFNodes if they depend on the tainted nodes
-    for(auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
+    /// Taint the objects (pointed by function operand pointers) and their successors
+    /// Taint each address taken memory allocation node if one or more operands are already tainted
+    /// Taint get element pointer nodes that have one or more nodes tainted
+    for (auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
         VFGNode *V = SV->second;
         if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(V)) {
-            /// to discard the function and global constant type nodes
-            /// todo: revisit here regarding ID 0
-            if (AVF->getICFGNode()->getId() == 0)
+            /// skip already tainted object VFG nodes
+            if (alreadyTaintedObjVFGNode.find(AVF->getId()) != alreadyTaintedObjVFGNode.end())
                 continue;
 
-            /// count total number of data pointers
-            Type *PTy = nullptr;
+            /// taint each address taken memory allocation node if one or more operands are already tainted
+            /// rest of the nodes that does not satisfy AVF->getICFGNode()->getId() == 0 condition are instructions
             if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
-                if (I->getOpcode() == Instruction::Alloca) {
-                    if (const auto *AI = SVFUtil::dyn_cast<AllocaInst>(I)) {
-                        PTy = AI->getAllocatedType();
-                    }
-                } else if (I->getOpcode() == Instruction::Call) {
-                    if (const auto *CI = SVFUtil::dyn_cast<CallInst>(I)) {
-                        PTy = CI->getCalledFunction()->getReturnType();
-                    }
-                }
-            }
-
-            if (PTy && IsDataPointerTmp(PTy)) {
-                totalMemObjects++;
-            }
-
-            /// All the leftover nodes are instruction type
-            if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
-                // skip the alloca instruction because its operand does not have any associated SVF node
+                /// skip the alloca instruction because its operand does not have any associated SVF node
                 if (I->getOpcode() == Instruction::Alloca)
                     continue;
 
-                // loop through all the operands and update the taint list if
-                // any operands of the instruction depend on user input
+                /// loop through all the operands and update the taint list if
+                /// any operands of the instruction depend on user input
                 for (auto Op = I->op_begin(); Op != I->op_end(); ++Op) {
                     const VFGNode* vNode = getVFGNodeFromValue(pag, svfg, Op->get());
                     /// if an operand is tainted, update the tainted list
@@ -703,19 +661,50 @@ DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, 
                 }
             }
         }
+        else if (V->getNodeKind() == VFGNode::VFGNodeK::Gep) {
+            const auto *GepVFG = SVFUtil::dyn_cast<GepVFGNode>(V);
+            if (const auto *I = SVFUtil::dyn_cast<Instruction>(GepVFG->getInst())) {
+                bool foundTaintedOperand = false;
+                /// loop through all the operands and update the taint list if
+                /// any operands of the instruction depend on user input
+                for (auto Op = I->op_begin(); Op != I->op_end(); ++Op) {
+                    /// skip constant type operand
+                    if(SVFUtil::isa<Constant>(Op->get())) {
+                        continue;
+                    }
+                    /// skip a constant getelemptr that is deduced from constants, e.g., getelemetptr str_0, 0, 0
+                    if (DPP::isConstantGetElemInst(Op->get())) {
+                        continue;
+                    }
+
+                    const VFGNode* vNode = getVFGNodeFromValue(pag, svfg, Op->get());
+                    if (TaintedSVFNodes.find(vNode->getId()) != TaintedSVFNodes.end()) {
+                        foundTaintedOperand = true;
+                        break;
+                    }
+                }
+                /// if a tainted operand is found, find the pointed object of get element pointer instruction
+                /// and insert the pointed object to unsafe object list.
+                if (foundTaintedOperand) {
+                    auto Operand1 = I->getOperand(0);
+                    auto objPointsToSet = getPointedObjectsByPtr(Operand1, svfg);
+                    for (auto Item: objPointsToSet) {
+                        // lookup the svf node from the pag.value and insert the ID to unsafe node list
+                        UnsafeSVFNodes.insert(getVFGNodeFromValue(pag, svfg, Item->getValue())->getId());
+                    }
+                }
+            }
+        }
     }
+
+    LLVM_DEBUG(dbgs() << "Checking whether tainted nodes are bounded using heuristics...\n");
 
     /// write some logs to file
     string dppLog = "#################### RULE 1 #########################\n";
 
-    /// to return the resultant prioritized dpp along with their scores
-    DenseMap<const Value *, int32_t> R;
-
     /// At this point, we have all the unsafe nodes. We loop through all the unsafe nodes,
     /// check if the nodes are bounded using compare instructions.
-    uint64_t inputDepObjs = 0;
     for (auto ID: UnsafeSVFNodes) {
-
         const auto SVFNode = svfg->getSVFGNode(ID);
         //uint32_t nodeDepth = DepthMap.lookup(SVFNode->getICFGNode()->getId());
         //errs() << *SVFNode << ", Depth = " << DepthMap.lookup(SVFNode->getICFGNode()->getId()) << "\n";
@@ -735,7 +724,6 @@ DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, 
 
                 /// if the type is data pointer
                 if (PTy && DPP::isDataPointer(PTy)) {
-                    inputDepObjs++;
 
                     /// getting all the reachable nodes reachable from either the svf node or its param nodes
                     auto reachableNodes = getReachableNodes(SVFNode, pag, svfg);

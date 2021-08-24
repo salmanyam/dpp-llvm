@@ -86,29 +86,19 @@ DPPRule2G::Result DPPRule2G::run(Module &M, AnalysisManager<Module> &AM) {
     PTACallGraph *Callgraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
 
+    LLVM_DEBUG(dbgs() << "Running rule 2...\n");
+
     auto DPValues = DPP::GetDataPointerInstructions(svfg, false);
 
     /// store the users of a value to a map
     ValUserMap VUMap;
     for (auto DPVal: DPValues) {
-        /// DPusers list also include DPInst as a user
+        /// DP users list also include itself (DPInst) as a user
         auto DPUsers = GetCompleteUsers(DPVal, svfg);
         VUMap.try_emplace(DPVal, DPUsers);
     }
 
-    //errs() << "LLVM DEBUG flag = " << DebugFlag << "\n";
-
-    /*errs() << "Printing value and its users\n";
-    for (auto Item: VUMap) {
-        auto Users = Item.getSecond();
-        errs() << "\nValue: " << *Item.getFirst() << "\n";
-        errs() << "---------------------------\n";
-        for (auto User: Users) {
-            errs() << "User: " << *User << "\n";
-        }
-    }
-    errs() << "Printing end\n";
-*/
+    LLVM_DEBUG(dbgs() << "Checking the existence of data pointer in conditions...\n");
 
     /// write some logs to file
     string dppLog = "#################### RULE 2 #########################\n";

@@ -10,6 +10,10 @@
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/Andersen.h"
 
+#include "SVF-FE/LLVMUtil.h"
+#include "SABER/LeakChecker.h"
+#include "SABER/DoubleFreeChecker.h"
+
 #define DEBUG_TYPE "DPPRule6"
 
 using namespace llvm;
@@ -90,11 +94,32 @@ ValSet DPPRule6G::GetCompleteUsers(const Value *Val, SVFG *svfg) {
 DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
+
+    //SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
+
+    //LeakChecker *saber;
+
+    //if(LEAKCHECKER)
+        //saber = new LeakChecker();
+    /*else if(FILECHECKER)
+        saber = new FileChecker();
+    else if(DFREECHECKER)
+        saber = new DoubleFreeChecker();
+    else
+        saber = new LeakChecker();  // if no checker is specified, we use leak checker as the default one.
+    */
+
+    //saber->runOnModule(svfModule);
+
+    //errs() << "After resource leak checker....\n";
+
     auto R = AM.getResult<SVFInitPass>(M);
 
     PAG *pag = R.SVFParams.pag;
     PTACallGraph *CallGraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
+
+    LLVM_DEBUG(dbgs() << "Starting rule 6...\n");
 
     auto DPValues = GetDataPointerInstructions(svfg, false);
 
@@ -106,18 +131,7 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
         VUMap.try_emplace(DPVal, DPUsers);
     }
 
-    /*
-    errs() << "Printing value and its users\n";
-    for (auto Item: VUMap) {
-        auto Users = Item.getSecond();
-        errs() << "\nValue: " << *Item.getFirst() << "\n";
-        errs() << "---------------------------\n";
-        for (auto User: Users) {
-            errs() << "User: " << *User << "\n";
-        }
-    }
-    errs() << "Printing end\n";
-    */
+    LLVM_DEBUG(dbgs() << "Checking the existence of data pointer in vulnerable functions...\n");
 
     auto BLFunctions = GetBlackListFunctions();
 
@@ -142,13 +156,16 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
                     //errs() << "Param " << paramIndex << ": " << *P << "\n";
                     paramIndex++;
 
+                    if (!P->hasValue())
+                        continue;
+
                     /// skip constant type parameter
                     if(SVFUtil::isa<Constant>(P->getValue())) {
                         continue;
                     }
 
-                    /// skip a variable that is deduced from constants, e.g., getelemetptr str_0, 0, 0
-                    if (!DPP::hasVariableOperand(P->getValue())) {
+                    /// skip a constant getelementptr that is deduced from constants, e.g., getelemetptr str_0, 0, 0
+                    if (DPP::isConstantGetElemInst(P->getValue())) {
                         continue;
                     }
 
@@ -168,12 +185,9 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
                             dppLog += "--------------------------------------------------------------\n";
                         }
                     }
-
                 }
-                //errs() << "----------------------------------------------------\n";
             }
         }
-        // errs() << "--------------------\n";
     }
 
     dppLog += "##################################################\n\n\n";

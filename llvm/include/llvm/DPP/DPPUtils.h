@@ -56,7 +56,7 @@ void writeDPPLogsToFile(std::string data);
 
 
 //++++++++++++++++ LLVM related ++++++++++++++++++++++
-bool hasVariableOperand(const Value *V);
+bool isConstantGetElemInst(const Value *V);
 
 } // namespace DPP
 } // namespace llvm

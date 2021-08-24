@@ -50,7 +50,7 @@ public:
    * Returns true if given Value is memory safe, as defined by Kutznetsov et al.
    * and used by StackSafetyAnalysis. That is, an allocation is memory safe, if
    * all pointers based on the allocation are guaranteed to only touch the
-   * alloction. In other words, if all pointers derived from the initial pointer
+   * allocation. In other words, if all pointers derived from the initial pointer
    * to the allocation are guaranteed to not overflow, underflow, cause
    * use-after-frees or other errors.
    * 

@@ -202,6 +202,8 @@ DPPRule3G::Result DPPRule3G::run(Module &M, AnalysisManager<Module> &AM) {
     PTACallGraph *CallGraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
 
+    LLVM_DEBUG(dbgs() << "Starting rule 3...\n");
+
     auto DPValues = DPP::GetDataPointerInstructions(svfg, false);
 
     /// store the users of an instructions to a map
@@ -212,17 +214,7 @@ DPPRule3G::Result DPPRule3G::run(Module &M, AnalysisManager<Module> &AM) {
         VUMap.try_emplace(DPVal, DPUsers);
     }
 
-    /*errs() << "Printing value and its users\n";
-    for (auto Item: VUMap) {
-        auto Users = Item.getSecond();
-        errs() << "\nValue: " << *Item.getFirst() << "\n";
-        errs() << "---------------------------\n";
-        for (auto User: Users) {
-            errs() << "User: " << *User << "\n";
-        }
-    }
-    errs() << "Printing end\n";
-     */
+    LLVM_DEBUG(dbgs() << "Checking the existence of data pointer in loops...\n");
 
     /// write some logs to file
     string dppLog = "#################### RULE 3 #########################\n";

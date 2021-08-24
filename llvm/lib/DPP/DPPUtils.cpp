@@ -177,12 +177,6 @@ ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
     for (auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
         VFGNode *V = SV->second;
         if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(V)) {
-            /// to discard the function and global constant type nodes
-            /// todo: revisit here regarding ID 0
-            if (AVF->getICFGNode()->getId() == 0)
-                continue;
-
-            /// count total number of data pointers
             Type *PTy = nullptr;
             if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
                 if (I->getOpcode() == Instruction::Alloca) {
@@ -210,7 +204,7 @@ ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
                             if (!llvm::isa<Constant>(Op->get()))
                                 hasVarOperand = true;
 
-                            if (hasVariableOperand(Op->get()))
+                            if (isConstantGetElemInst(Op->get()))
                                 hasVarOperand = true;
 
                         }
@@ -225,14 +219,16 @@ ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
 }
 
 
-
-bool llvm::DPP::hasVariableOperand(const Value *V) {
-    /// convert the value to an instruction and check all its operand to see if they are constant
+bool llvm::DPP::isConstantGetElemInst(const Value *V) {
+    /// convert the value to a get element instruction and check all its operand to see if they are constant
     /// return false if any operand is not constant, otherwise return true
     if (const Instruction *I = llvm::dyn_cast<Instruction>(V)) {
-        for (auto Op = I->op_begin(); Op != I->op_end(); ++Op) {
-            if (!llvm::isa<Constant>(Op->get()))
-                return true;
+        if (I->getOpcode() == Instruction::GetElementPtr) {
+            for (auto Op = I->op_begin(); Op != I->op_end(); ++Op) {
+                if (!llvm::isa<Constant>(Op->get()))
+                    return false;
+            }
+            return true; // because we know get elem has two or three params and all of them are constant
         }
     }
     return false;

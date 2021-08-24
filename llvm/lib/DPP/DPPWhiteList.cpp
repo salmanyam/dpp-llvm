@@ -11,7 +11,7 @@
 #include "llvm/DPP/TypeVisitor.h"
 #include "llvm/IR/InstVisitor.h"
 
-#define DEBUG_TYPE "DPPRule5"
+#define DEBUG_TYPE "DPPWhiteList"
 
 using namespace llvm;
 using namespace llvm::DPP;
@@ -26,8 +26,9 @@ DPPWhiteList::Result DPPWhiteList::run(Module &M, AnalysisManager<Module> &AM) {
 bool DPPWhiteListResult::isSafe(const Value* V) const {
   if (const auto* AI = dyn_cast<AllocaInst>(V)) {
     // Check if SSG can prove safety of AllocaInst
-    if (SSGI->isSafe(*AI))
-      return true;
+    if (SSGI->isSafe(*AI)) {
+        return true;
+    }
   }
 
   // Default is unsafe if nothing can prove otherwise

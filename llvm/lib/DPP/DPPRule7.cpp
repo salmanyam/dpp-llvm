@@ -133,6 +133,8 @@ DPPRule7G::Result DPPRule7G::run(Module &M, AnalysisManager<Module> &AM) {
     PTACallGraph *CallGraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
 
+    LLVM_DEBUG(dbgs() << "Starting rule 7...\n");
+
     auto DPValues = GetDataPointerInstructions(svfg, false);
 
     /// store the users of a value to a map
@@ -143,16 +145,7 @@ DPPRule7G::Result DPPRule7G::run(Module &M, AnalysisManager<Module> &AM) {
         VUMap.try_emplace(DPVal, DPUsers);
     }
 
-    /*errs() << "Printing value and its users\n";
-    for (auto Item: VUMap) {
-        auto Users = Item.getSecond();
-        errs() << "\nValue: " << *Item.getFirst() << "\n";
-        errs() << "---------------------------\n";
-        for (auto User: Users) {
-            errs() << "User: " << *User << "\n";
-        }
-    }
-    errs() << "Printing end\n";*/
+    LLVM_DEBUG(dbgs() << "Checking bad casting of data pointers...\n");
 
     /// write some logs to file
     string dppLog = "#################### RULE 7 #########################\n";

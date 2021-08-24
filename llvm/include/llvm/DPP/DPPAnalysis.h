@@ -42,10 +42,13 @@ class DPPAnalysis : public AnalysisInfoMixin<DPPAnalysis> {
 public:
   using Result = DPPAnalysisResult;
   Result run(Module &M, AnalysisManager<Module> &AM);
+  const SVF::VFGNode* getVFGNodeFromValue(SVF::PAG *pag, SVF::SVFG *svfg, const Value *val);
+  ValSet GetCompleteUsers(const Value *Val, SVF::SVFG *svfg);
   ValSet getPointersToObject(const Value *Val, SVF::SVFG *svfg);
   std::pair<ValSet, uint32_t> getTotalDataPointers(SVF::SVFG *svfg);
   ValSet getDataPointersToObjects(DPPMap Map, SVF::SVFG *svfg);
   ValSet getDataObjects(DPPMap Map);
+  DPPMap filterObjects(DPPMap M1, DPPMap M2);
 };
 
 class DPPAnalysisPrinterPass : public PassInfoMixin<DPPAnalysisPrinterPass> {
