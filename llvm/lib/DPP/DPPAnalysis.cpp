@@ -61,9 +61,8 @@ ValSet DPPAnalysis::GetCompleteUsers(const Value *Val, SVFG *svfg) {
     return visited;
 }
 
-
+/// get all the pointers pointing to the object pointed by Val
 ValSet DPPAnalysis::getPointersToObject(const Value *Val, SVFG *svfg) {
-    /// get all the load/store pointers pointing to an object, i.e., the object pointed by Val
     ValSet Pointers;
     NodeID pNodeId = svfg->getPAG()->getObjectNode(Val);
     const NodeBS& pts = svfg->getPTA()->getRevPts(pNodeId);
@@ -79,7 +78,6 @@ ValSet DPPAnalysis::getPointersToObject(const Value *Val, SVFG *svfg) {
             Pointers.insert(targetPtr->getValue());
         }
     }
-
     return Pointers;
 }
 
