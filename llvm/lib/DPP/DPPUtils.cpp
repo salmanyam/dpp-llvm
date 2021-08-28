@@ -170,13 +170,13 @@ void llvm::DPP::writeDPPLogsToFile(string data) {
     outfile.close();
 }
 
-
+/// return the instructions where address taken objects are created, e.g., alloca or malloc, etc.
 ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
     ValSet Insts;
-    /// for each address taken memory allocation nodes
+    /// for each address taken nodes
     for (auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
         VFGNode *V = SV->second;
-        if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(V)) {
+        if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(V)) { // address vfg node
             Type *PTy = nullptr;
             if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
                 if (I->getOpcode() == Instruction::Alloca) {
@@ -191,23 +191,24 @@ ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
             }
 
             if (PTy && DPP::isDataPointer(PTy)) {
-                /// All the leftover nodes are instruction type
                 if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
-                    /// count the total objects
+                    // for counting the total objects
                     if (needTotal) {
                         Insts.insert(I);
-                    }
-                    else {
+
+                    }else {
                         /// discard objects with constant operands
                         bool hasVarOperand = false;
                         for (auto Op = I->op_begin(); Op != I->op_end(); ++Op) {
-                            if (!llvm::isa<Constant>(Op->get()))
-                                hasVarOperand = true;
+                            if (llvm::isa<Constant>(Op->get()))
+                                continue;
 
                             if (isConstantGetElemInst(Op->get()))
-                                hasVarOperand = true;
+                                continue;
 
+                            hasVarOperand = true;
                         }
+
                         if (hasVarOperand)
                             Insts.insert(I);
                     }
