@@ -34,6 +34,7 @@ public:
     OS << Data;
     return OS;
   }
+  StringRef getData() {return Data;}
 };
 
 class DPPAnalysis : public AnalysisInfoMixin<DPPAnalysis> {

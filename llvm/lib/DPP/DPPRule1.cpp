@@ -619,7 +619,7 @@ DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, 
         }
     }
 
-    LLVM_DEBUG(dgbs() << "Tainting address taken memory allocation nodes that have tainted dependency...\n");
+    LLVM_DEBUG(dbgs() << "Tainting address taken memory allocation nodes that have tainted dependency...\n");
 
     /// Taint the objects (pointed by function operand pointers) and their successors
     /// Taint each address taken memory allocation node if one or more operands are already tainted
