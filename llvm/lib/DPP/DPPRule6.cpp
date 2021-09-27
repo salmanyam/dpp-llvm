@@ -3,16 +3,13 @@
 //
 
 #include "llvm/DPP/SVFInitPass.h"
+#include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule6.h"
 
 #include "Graphs/SVFG.h"
 #include "SVF-FE/LLVMUtil.h"
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/Andersen.h"
-
-#include "SVF-FE/LLVMUtil.h"
-#include "SABER/LeakChecker.h"
-#include "SABER/DoubleFreeChecker.h"
 
 #define DEBUG_TYPE "DPPRule6"
 
@@ -94,25 +91,6 @@ ValSet DPPRule6G::GetCompleteUsers(const Value *Val, SVFG *svfg) {
 DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
-
-    //SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
-
-    //LeakChecker *saber;
-
-    //if(LEAKCHECKER)
-        //saber = new LeakChecker();
-    /*else if(FILECHECKER)
-        saber = new FileChecker();
-    else if(DFREECHECKER)
-        saber = new DoubleFreeChecker();
-    else
-        saber = new LeakChecker();  // if no checker is specified, we use leak checker as the default one.
-    */
-
-    //saber->runOnModule(svfModule);
-
-    //errs() << "After resource leak checker....\n";
-
     auto R = AM.getResult<SVFInitPass>(M);
 
     PAG *pag = R.SVFParams.pag;
@@ -121,14 +99,15 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
 
     LLVM_DEBUG(dbgs() << "Starting rule 6...\n");
 
-    auto DPValues = GetDataPointerInstructions(svfg, false);
+    //auto DPValues = GetDataPointerInstructions(svfg, false);
+    auto TaintedObjects = AM.getResult<DPPRule1G>(M);
 
     /// store the users of a value to a map
     ValUserMap VUMap;
-    for (auto DPVal: DPValues) {
-        /// DPusers list also include DPInst as a user
-        auto DPUsers = GetCompleteUsers(DPVal, svfg);
-        VUMap.try_emplace(DPVal, DPUsers);
+    for (auto Item: TaintedObjects.PrioritizedPtrMap) { // previously here was DPValues
+        /// DP users list also include itself (DPInst) as a user
+        auto DPUsers = GetCompleteUsers(Item.getFirst(), svfg); // previously was only Item
+        VUMap.try_emplace(Item.getFirst(), DPUsers);
     }
 
     LLVM_DEBUG(dbgs() << "Checking the existence of data pointer in vulnerable functions...\n");

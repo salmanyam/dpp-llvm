@@ -6,6 +6,7 @@
 
 #include "llvm/DPP/SVFInitPass.h"
 #include "llvm/DPP/DPPUtils.h"
+#include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule9.h"
 
 #include "Graphs/SVFG.h"
@@ -466,10 +467,16 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
 
     LLVM_DEBUG(dbgs() << "Checking the whether the allocation sites are bounded or not...\n");
 
+    auto TaintedNodes = AM.getResult<DPPRule1G>(M);
+
     /// write some logs to file
     string dppLog = "#################### RULE 9 #########################\n";
 
     for (auto Node: SVFGAllocationNodeSet) {
+        /// ignore allocation sites that are not tainted
+        if (TaintedNodes.TaintedSVFObjNodes.find(Node->getId()) == TaintedNodes.TaintedSVFObjNodes.end())
+            continue;
+
         /// getting all the reachable nodes reachable from either the svf node or its param nodes
         set<uint32_t> reachableNodes = getReachableNodes(Node, pag, svfg);
 

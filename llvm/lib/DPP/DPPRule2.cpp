@@ -3,6 +3,7 @@
 //
 
 #include "llvm/DPP/SVFInitPass.h"
+#include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule2.h"
 
 #include "Graphs/SVFG.h"
@@ -57,6 +58,7 @@ ValSet DPPRule2G::GetCompleteUsers(const Value *Val, SVFG *svfg) {
     /// get all the pointers pointing to an object, i.e., the object pointed by Val
     auto Pointers = getPointersToObject(Val, svfg);
     for (auto Ptr: Pointers) {
+        //errs() << "Ptr = " << *Ptr << "\n";
         if (visited.find(Ptr) == visited.end())
             worklist.push(Ptr);
     }
@@ -83,20 +85,28 @@ DPPRule2G::Result DPPRule2G::run(Module &M, AnalysisManager<Module> &AM) {
     auto R = AM.getResult<SVFInitPass>(M);
 
     PAG *pag = R.SVFParams.pag;
-    PTACallGraph *Callgraph = R.SVFParams.CallGraph;
+    //PTACallGraph *Callgraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
 
     LLVM_DEBUG(dbgs() << "Running rule 2...\n");
 
-    auto DPValues = DPP::GetDataPointerInstructions(svfg, false);
+    //auto DPValues = DPP::GetDataPointerInstructions(svfg, false);
+    auto TaintedObjects = AM.getResult<DPPRule1G>(M);
 
     /// store the users of a value to a map
     ValUserMap VUMap;
-    for (auto DPVal: DPValues) {
+    for (auto Item: TaintedObjects.PrioritizedPtrMap) { // previously here was DPValues
         /// DP users list also include itself (DPInst) as a user
-        auto DPUsers = GetCompleteUsers(DPVal, svfg);
-        VUMap.try_emplace(DPVal, DPUsers);
+        auto DPUsers = GetCompleteUsers(Item.getFirst(), svfg); // previously was only Item
+        VUMap.try_emplace(Item.getFirst(), DPUsers);
     }
+
+    /*for (auto Item: VUMap) {
+        errs() << "Value = " << *Item.getFirst() << "\n-----------------------------\n";
+        for (auto V: Item.getSecond()) {
+            errs() << "User = " << *V << "\n";
+        }
+    }*/
 
     LLVM_DEBUG(dbgs() << "Checking the existence of data pointer in conditions...\n");
 

@@ -4,6 +4,7 @@
 
 
 #include "llvm/DPP/SVFInitPass.h"
+#include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule3.h"
 
 #include "Graphs/SVFG.h"
@@ -204,14 +205,15 @@ DPPRule3G::Result DPPRule3G::run(Module &M, AnalysisManager<Module> &AM) {
 
     LLVM_DEBUG(dbgs() << "Starting rule 3...\n");
 
-    auto DPValues = DPP::GetDataPointerInstructions(svfg, false);
+    //auto DPValues = DPP::GetDataPointerInstructions(svfg, false);
+    auto TaintedObjects = AM.getResult<DPPRule1G>(M);
 
-    /// store the users of an instructions to a map
+    /// store the users of a value to a map
     ValUserMap VUMap;
-    for (auto DPVal: DPValues) {
-        /// DPusers list also include DPInst as a user
-        auto DPUsers = GetCompleteUsers(DPVal, svfg);
-        VUMap.try_emplace(DPVal, DPUsers);
+    for (auto Item: TaintedObjects.PrioritizedPtrMap) { // previously here was DPValues
+        /// DP users list also include itself (DPInst) as a user
+        auto DPUsers = GetCompleteUsers(Item.getFirst(), svfg); // previously was only Item
+        VUMap.try_emplace(Item.getFirst(), DPUsers);
     }
 
     LLVM_DEBUG(dbgs() << "Checking the existence of data pointer in loops...\n");

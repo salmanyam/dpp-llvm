@@ -17,41 +17,41 @@ namespace SVF {
 } // namespace SVF
 
 namespace llvm {
-    namespace DPP {
+namespace DPP {
 
-        class DPPRule2GResult;
+class DPPRule2GResult;
 
-        class DPPRule2G : public AnalysisInfoMixin<DPPRule2G> {
-            friend AnalysisInfoMixin<DPPRule2G>;
-        public:
-            using Result = DPPRule2GResult;
+class DPPRule2G : public AnalysisInfoMixin<DPPRule2G> {
+    friend AnalysisInfoMixin<DPPRule2G>;
+public:
+    using Result = DPPRule2GResult;
 
-            static const char RuleName[];
-            static AnalysisKey Key;
+    static const char RuleName[];
+    static AnalysisKey Key;
 
-            Result run(Module &M, AnalysisManager<Module> &AM);
-            const SVF::VFGNode* getVFGNodeFromValue(SVF::PAG *pag, SVF::SVFG *svfg, const Value *val);
-            llvm::DPP::ValSet getPointersToObject(const Value *Val, SVF::SVFG *svfg);
-            llvm::DPP::ValSet GetCompleteUsers(const Value *Val, SVF::SVFG *svfg);
-        };
+    Result run(Module &M, AnalysisManager<Module> &AM);
+    const SVF::VFGNode* getVFGNodeFromValue(SVF::PAG *pag, SVF::SVFG *svfg, const Value *val);
+    llvm::DPP::ValSet getPointersToObject(const Value *Val, SVF::SVFG *svfg);
+    llvm::DPP::ValSet GetCompleteUsers(const Value *Val, SVF::SVFG *svfg);
+};
 
-        class DPPRule2GResult : public DPPResult<DPPRule2G> {
-            friend DPPRule2G;
-        public:
-            llvm::DPP::DPPMap PrioritizedPtrMap;
-        public:
-            DPPRule2GResult() {}
-            raw_ostream &print(raw_ostream &OS) const;
-        };
+class DPPRule2GResult : public DPPResult<DPPRule2G> {
+    friend DPPRule2G;
+public:
+    llvm::DPP::DPPMap PrioritizedPtrMap;
+public:
+    DPPRule2GResult() {}
+    raw_ostream &print(raw_ostream &OS) const;
+};
 
-        class [[maybe_unused]] DPPRule2GPrinterPass
-                : public DPPGlobalPrinterPass<DPPRule2G> {
-        public:
-            [[maybe_unused]] DPPRule2GPrinterPass(raw_ostream &OS)
-                    : DPPGlobalPrinterPass(OS) {}
-        };
+class [[maybe_unused]] DPPRule2GPrinterPass
+        : public DPPGlobalPrinterPass<DPPRule2G> {
+public:
+    [[maybe_unused]] DPPRule2GPrinterPass(raw_ostream &OS)
+            : DPPGlobalPrinterPass(OS) {}
+};
 
-    } // namespace DPP
+} // namespace DPP
 } // namespace llvm
 
 #endif //DPP_LLVM_DPPRULE2_H

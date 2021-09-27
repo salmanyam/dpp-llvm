@@ -1296,8 +1296,8 @@ void EmitAssemblyHelper::EmitAssemblyWithNewPassManager(
               MPM.addPass(ModuleAddressSanitizerPass(CompileKernel, Recover,
                                                      ModuleUseAfterScope,
                                                      UseOdrIndicator));
-              MPM.addPass(createModuleToFunctionPassAdaptor(
-                  AddressSanitizerPass(CompileKernel, Recover, UseAfterScope)));
+              //MPM.addPass(createModuleToFunctionPassAdaptor(
+                  //AddressSanitizerPass(CompileKernel, Recover, UseAfterScope)));
             });
       }
     };
@@ -1592,10 +1592,11 @@ void clang::EmitBackendOutput(DiagnosticsEngine &Diags,
 
   EmitAssemblyHelper AsmHelper(Diags, HeaderOpts, CGOpts, TOpts, LOpts, M);
 
-  if (!CGOpts.LegacyPassManager)
+  /// This is commented as part of DPP work to always run the new pass manager
+  //if (!CGOpts.LegacyPassManager)
     AsmHelper.EmitAssemblyWithNewPassManager(Action, std::move(OS));
-  else
-    AsmHelper.EmitAssembly(Action, std::move(OS));
+  //else
+    //AsmHelper.EmitAssembly(Action, std::move(OS));
 
   // Verify clang's TargetInfo DataLayout against the LLVM TargetMachine's
   // DataLayout.

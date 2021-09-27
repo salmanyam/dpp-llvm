@@ -173,11 +173,13 @@ void llvm::DPP::writeDPPLogsToFile(string data) {
 /// return the instructions where address taken objects are created, e.g., alloca or malloc, etc.
 ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
     ValSet Insts;
+
     /// for each address taken nodes
     for (auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
         VFGNode *V = SV->second;
         if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(V)) { // address vfg node
             Type *PTy = nullptr;
+
             if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
                 if (I->getOpcode() == Instruction::Alloca) {
                     if (const auto *AI = SVFUtil::dyn_cast<AllocaInst>(I)) {
@@ -188,6 +190,17 @@ ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
                         PTy = CI->getCalledFunction()->getReturnType();
                     }
                 }
+
+            } else {
+                /// add the global variable (may be) here
+                if (AVF->getPAGSrcNode()->hasValue()) {
+                    if (auto GlobalVar = llvm::dyn_cast<GlobalVariable>(AVF->getPAGSrcNode()->getValue())) {
+                        if (DPP::isDataPointer(GlobalVar->getType()->getPointerElementType())) {
+                            Insts.insert(GlobalVar);
+                        }
+                    }
+                }
+
             }
 
             if (PTy && DPP::isDataPointer(PTy)) {
@@ -216,6 +229,7 @@ ValSet llvm::DPP::GetDataPointerInstructions(SVFG *svfg, bool needTotal) {
             }
         }
     }
+
     return Insts;
 }
 

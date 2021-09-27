@@ -4,6 +4,7 @@ add_llvm_component_library(DPP
   DPPRule1.cpp
   DPPRule2.cpp
   DPPRule3.cpp
+  DPPRule4.cpp
   DPPRule5.cpp
   DPPRule6.cpp
   DPPRule7.cpp
