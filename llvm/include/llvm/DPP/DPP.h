@@ -15,6 +15,7 @@
 #include "llvm/DPP/DPPAnalysis.h"
 #include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule2.h"
+#include "llvm/DPP/DPPRule4.h"
 #include "llvm/DPP/DPPRule3.h"
 #include "llvm/DPP/DPPRule5.h"
 #include "llvm/DPP/DPPRule6.h"

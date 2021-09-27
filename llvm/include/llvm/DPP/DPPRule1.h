@@ -8,6 +8,8 @@
 #include "llvm/DPP/DPPUtils.h"
 #include "llvm/DPP/DPPRule.h"
 
+#include "set"
+
 namespace SVF {
 class PAG;
 class PTACallGraph;
@@ -48,7 +50,7 @@ typedef struct InputFunction_t {
 
 using InputFunctionMap = DenseMap<StringRef, InputFunction *>;
 
-DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg);
+//DenseMap<const Value *, int32_t> Rule1Global(PAG *pag, PTACallGraph* callgraph, SVFG *svfg);
 
 
 namespace llvm {
@@ -60,18 +62,36 @@ class DPPRule1GResult;
 class DPPRule1G : public AnalysisInfoMixin<DPPRule1G> {
     friend AnalysisInfoMixin<DPPRule1G>;
 public:
+    using SVFNodeSet = std::set<uint32_t>;
+
+public:
+    SVFNodeSet InputSVFGNodes;
+    SVFNodeSet TaintedSVFNodes;
+    SVFNodeSet UnsafeSVFNodes;
+
+    // to store input dependent library functions
+    InputFunctionMap InputFunctions;
+
+public:
     using Result = DPPRule1GResult;
 
     static const char RuleName[];
     static AnalysisKey Key;
 
     Result run(Module &M, AnalysisManager <Module> &AM);
+    void Rule1Init();
+    bool isInputReadingFunction(StringRef funcName);
+    unsigned int getInputArgStart(StringRef funcName);
+    const VFGNode* getVFGNodeFromValue(SVF::PAG *pag, SVF::SVFG *svfg, const Value *val);
+    DenseSet<SVF::PAGNode *> getPointedObjectsByPtr(const Value *Ptr, SVF::SVFG *svfg);
+    void updateTaintList(SVF::SVFG *svfg, const SVF::VFGNode* arg_vNode);
 };
 
 class DPPRule1GResult : public DPPResult<DPPRule1G> {
     friend DPPRule1G;
 public:
     llvm::DPP::DPPMap PrioritizedPtrMap;
+    std::set<uint32_t> TaintedSVFObjNodes;
 public:
     DPPRule1GResult() {}
 

@@ -24,17 +24,11 @@ namespace llvm {
 namespace DPP {
 
 class DPPAnalysisResult {
-private:
-  StringRef Data;
+public:
+  DenseSet<const Value *> FilteredInstructions;
 public:
   DPPAnalysisResult() = delete;
-  [[maybe_unused]] DPPAnalysisResult(StringRef Data) : Data(Data) {}
-
-  raw_ostream &print(raw_ostream &OS) const {
-    OS << Data;
-    return OS;
-  }
-  StringRef getData() {return Data;}
+  raw_ostream &print(raw_ostream &OS) const;
 };
 
 class DPPAnalysis : public AnalysisInfoMixin<DPPAnalysis> {

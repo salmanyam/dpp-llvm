@@ -138,6 +138,8 @@ DPPMap DPPAnalysis::filterObjects(DPPMap Map1, DPPMap Map2) {
 }
 
 DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
+    Result Result {};
+
     LLVM_DEBUG(dbgs() << "DPPGlobalAnalysis::run starting up...\n");
 
     auto R = AM.getResult<SVFInitPass>(M);
@@ -152,7 +154,6 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
     auto totalDataPointers = objPtrPair.first; // set of data pointers
     auto totalDataObjects = objPtrPair.second; // number of data objects
 
-
     auto ruleNum = DPP::getRuleNum();
 
     if (ruleNum.compare("rule1") == 0) {
@@ -160,178 +161,251 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
         //auto Rule1Objects = getDataObjects(Rule1Result.PrioritizedPtrMap);
 
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule1Set.begin(), Rule1Set.end());
+
         totalDataPointers.insert(Rule1Set.begin(), Rule1Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule1Set.size() << "(" << Rule1Result.PrioritizedPtrMap.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule2") == 0) {
+        //auto Rule1Result = AM.getResult<DPPRule1G>(M);
+        //auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+
         auto Rule2Result = AM.getResult<DPPRule2G>(M);
+        /// filter rule 2
+        //auto FilteredRule2Result = filterObjects(Rule2Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
         auto Rule2Set = getDataPointersToObjects(Rule2Result.PrioritizedPtrMap, svfg);
-        //auto Rule2Objects = getDataObjects(Rule2Result.PrioritizedPtrMap);
+        auto Rule2Objects = getDataObjects(Rule2Result.PrioritizedPtrMap);
+
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule2Set.begin(), Rule2Set.end());
 
         totalDataPointers.insert(Rule2Set.begin(), Rule2Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule2Set.size() << "(" << Rule2Result.PrioritizedPtrMap.size() << ") " << "\n";
+        << Rule2Set.size() << "(" << Rule2Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule3") == 0) {
+        //auto Rule1Result = AM.getResult<DPPRule1G>(M);
+        //auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+
         auto Rule3Result = AM.getResult<DPPRule3G>(M);
+        /// filter rule 3
+        //auto FilteredRule3Result = filterObjects(Rule3Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
         auto Rule3Set = getDataPointersToObjects(Rule3Result.PrioritizedPtrMap, svfg);
-        //auto Rule3Objects = getDataObjects(Rule3Result.PrioritizedPtrMap);
+        auto Rule3Objects = getDataObjects(Rule3Result.PrioritizedPtrMap);
+
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule3Set.begin(), Rule3Set.end());
 
         totalDataPointers.insert(Rule3Set.begin(), Rule3Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule3Set.size() << "(" << Rule3Result.PrioritizedPtrMap.size() << ") " << "\n";
+        << Rule3Set.size() << "(" << Rule3Objects.size() << ") " << "\n";
+    }
+    else if (ruleNum.compare("rule4") == 0) {
+        //auto Rule1Result = AM.getResult<DPPRule1G>(M);
+        //auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+
+        auto Rule4Result = AM.getResult<DPPRule4G>(M);
+        /// filter rule 3
+        //auto FilteredRule3Result = filterObjects(Rule3Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
+        auto Rule4Set = getDataPointersToObjects(Rule4Result.PrioritizedPtrMap, svfg);
+        auto Rule4Objects = getDataObjects(Rule4Result.PrioritizedPtrMap);
+
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule4Set.begin(), Rule4Set.end());
+
+        totalDataPointers.insert(Rule4Set.begin(), Rule4Set.end());
+
+        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        << Rule4Set.size() << "(" << Rule4Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule5") == 0) {
         auto Rule5Result = AM.getResult<DPPRule5G>(M);
         auto Rule5Set = getDataPointersToObjects(Rule5Result.PrioritizedPtrMap, svfg);
-        //auto Rule5Objects = getDataObjects(Rule5Result.PrioritizedPtrMap);
+        auto Rule5Objects = getDataObjects(Rule5Result.PrioritizedPtrMap);
+
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule5Set.begin(), Rule5Set.end());
 
         totalDataPointers.insert(Rule5Set.begin(), Rule5Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule5Set.size() << "(" << Rule5Result.PrioritizedPtrMap.size() << ") " << "\n";
+        << Rule5Set.size() << "(" << Rule5Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule6") == 0) {
+        //auto Rule1Result = AM.getResult<DPPRule1G>(M);
+        //auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+
         auto Rule6Result = AM.getResult<DPPRule6G>(M);
+        /// filter rule 6
+        //auto FilteredRule6Result = filterObjects(Rule6Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
         auto Rule6Set = getDataPointersToObjects(Rule6Result.PrioritizedPtrMap, svfg);
-        //auto Rule6Objects = getDataObjects(Rule6Result.PrioritizedPtrMap);
+        auto Rule6Objects = getDataObjects(Rule6Result.PrioritizedPtrMap);
+
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule6Set.begin(), Rule6Set.end());
 
         totalDataPointers.insert(Rule6Set.begin(), Rule6Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule6Set.size() << "(" << Rule6Result.PrioritizedPtrMap.size() << ") " << "\n";
+        << Rule6Set.size() << "(" << Rule6Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule7") == 0) {
+        //auto Rule1Result = AM.getResult<DPPRule1G>(M);
+        //auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+
         auto Rule7Result = AM.getResult<DPPRule7G>(M);
+        /// filter rule 7
+        //auto FilteredRule7Result = filterObjects(Rule7Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
         auto Rule7Set = getDataPointersToObjects(Rule7Result.PrioritizedPtrMap, svfg);
-        //auto Rule7Objects = getDataObjects(Rule7Result.PrioritizedPtrMap);
+        auto Rule7Objects = getDataObjects(Rule7Result.PrioritizedPtrMap);
+
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule7Set.begin(), Rule7Set.end());
 
         totalDataPointers.insert(Rule7Set.begin(), Rule7Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule7Set.size() << "(" << Rule7Result.PrioritizedPtrMap.size() << ") " << "\n";
+        << Rule7Set.size() << "(" << Rule7Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule8") == 0) {
-        auto Rule1Result = AM.getResult<DPPRule1G>(M);
-        auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+        //auto Rule1Result = AM.getResult<DPPRule1G>(M);
+        //auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
 
         auto Rule8Result = AM.getResult<DPPRule8G>(M);
         /// filter rule 8 by considering buffers that are dependent on user, i.e., tainted
-        auto FilteredRule8Result = filterObjects(Rule8Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
+        //auto FilteredRule8Result = filterObjects(Rule8Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
 
-        /// write some logs to file
-        string dppLog = "#################### RULE 8 #########################\n";
-        for (auto Item: FilteredRule8Result) {
-            auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.getFirst());
-            dppLog += SVFNode->toString() + "\n";
-            dppLog += "--------------------------------------------------------------\n";
-        }
-        dppLog += "##################################################\n\n\n";
-        DPP::writeDPPLogsToFile(dppLog);
+        auto Rule8Set = getDataPointersToObjects(Rule8Result.PrioritizedPtrMap, svfg);
+        auto Rule8Objects = getDataObjects(Rule8Result.PrioritizedPtrMap);
 
-        auto Rule8Set = getDataPointersToObjects(FilteredRule8Result, svfg);
-        //auto Rule8Objects = getDataObjects(Rule8Result.PrioritizedPtrMap);
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule8Set.begin(), Rule8Set.end());
 
         totalDataPointers.insert(Rule8Set.begin(), Rule8Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule8Set.size() << "(" << FilteredRule8Result.size() << ") " << "\n";
+        << Rule8Set.size() << "(" << Rule8Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule9") == 0) {
+        //auto Rule1Result = AM.getResult<DPPRule1G>(M);
+        //auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+
         auto Rule9Result = AM.getResult<DPPRule9G>(M);
+        /// filter rule 9
+        //auto FilteredRule9Result = filterObjects(Rule9Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
         auto Rule9Set = getDataPointersToObjects(Rule9Result.PrioritizedPtrMap, svfg);
-        //auto Rule9Objects = getDataObjects(Rule9Result.PrioritizedPtrMap);
+        auto Rule9Objects = getDataObjects(Rule9Result.PrioritizedPtrMap);
+
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(Rule9Set.begin(), Rule9Set.end());
 
         totalDataPointers.insert(Rule9Set.begin(), Rule9Set.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule9Set.size() << "(" << Rule9Result.PrioritizedPtrMap.size() << ") " << "\n";
+        << Rule9Set.size() << "(" << Rule9Objects.size() << ") " << "\n";
     }
     else {
         auto Rule1Result = AM.getResult<DPPRule1G>(M);
         auto Rule2Result = AM.getResult<DPPRule2G>(M);
         auto Rule3Result = AM.getResult<DPPRule3G>(M);
+        auto Rule4Result = AM.getResult<DPPRule4G>(M);
         auto Rule5Result = AM.getResult<DPPRule5G>(M);
         auto Rule6Result = AM.getResult<DPPRule6G>(M);
         auto Rule7Result = AM.getResult<DPPRule7G>(M);
         auto Rule8Result = AM.getResult<DPPRule8G>(M);
         auto Rule9Result = AM.getResult<DPPRule9G>(M);
 
+        /// filter rule 2
+        //auto FilteredRule2Result = filterObjects(Rule2Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
+
+        /// filter rule 3
+        //auto FilteredRule3Result = filterObjects(Rule3Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
+
+        /// filter rule 6
+        //auto FilteredRule6Result = filterObjects(Rule6Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
+
+        /// filter rule 7
+        //auto FilteredRule7Result = filterObjects(Rule7Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
+
         /// filter rule 8 by considering buffers that are dependent on user, i.e., tainted
-        auto FilteredRule8Result = filterObjects(Rule8Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
+        //auto FilteredRule8Result = filterObjects(Rule8Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
         //errs() << "Before size = " << Rule8Result.PrioritizedPtrMap.size() << " After = " << FilteredRule8Result.size() << "\n";
 
-        /// write rule 8 logs to file
-        string dppLog = "#################### RULE 8 #########################\n";
-        for (auto Item: FilteredRule8Result) {
-            auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.getFirst());
-            dppLog += SVFNode->toString() + "\n";
-            dppLog += "--------------------------------------------------------------\n";
-        }
-        dppLog += "##################################################\n\n\n";
-        DPP::writeDPPLogsToFile(dppLog);
+        /// filter rule 9
+        //auto FilteredRule9Result = filterObjects(Rule9Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
 
         auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
         auto Rule2Set = getDataPointersToObjects(Rule2Result.PrioritizedPtrMap, svfg);
         auto Rule3Set = getDataPointersToObjects(Rule3Result.PrioritizedPtrMap, svfg);
+        auto Rule4Set = getDataPointersToObjects(Rule4Result.PrioritizedPtrMap, svfg);
         auto Rule5Set = getDataPointersToObjects(Rule5Result.PrioritizedPtrMap, svfg);
         auto Rule6Set = getDataPointersToObjects(Rule6Result.PrioritizedPtrMap, svfg);
         auto Rule7Set = getDataPointersToObjects(Rule7Result.PrioritizedPtrMap, svfg);
-        auto Rule8Set = getDataPointersToObjects(FilteredRule8Result, svfg);
+        auto Rule8Set = getDataPointersToObjects(Rule8Result.PrioritizedPtrMap, svfg);
         auto Rule9Set = getDataPointersToObjects(Rule9Result.PrioritizedPtrMap, svfg);
 
         auto Rule1Objects = getDataObjects(Rule1Result.PrioritizedPtrMap);
         auto Rule2Objects = getDataObjects(Rule2Result.PrioritizedPtrMap);
         auto Rule3Objects = getDataObjects(Rule3Result.PrioritizedPtrMap);
+        auto Rule4Objects = getDataObjects(Rule4Result.PrioritizedPtrMap);
         auto Rule5Objects = getDataObjects(Rule5Result.PrioritizedPtrMap);
         auto Rule6Objects = getDataObjects(Rule6Result.PrioritizedPtrMap);
         auto Rule7Objects = getDataObjects(Rule7Result.PrioritizedPtrMap);
-        auto Rule8Objects = getDataObjects(FilteredRule8Result);
+        auto Rule8Objects = getDataObjects(Rule8Result.PrioritizedPtrMap);
         auto Rule9Objects = getDataObjects(Rule9Result.PrioritizedPtrMap);
 
-
+        /// compute total data pointers, i.e., load/store instructions
         ValSet CombinedSet;
-        CombinedSet.insert(Rule1Set.begin(), Rule1Set.end());
+        //CombinedSet.insert(Rule1Set.begin(), Rule1Set.end());
         CombinedSet.insert(Rule2Set.begin(), Rule2Set.end());
         CombinedSet.insert(Rule3Set.begin(), Rule3Set.end());
+        CombinedSet.insert(Rule4Set.begin(), Rule4Set.end());
         CombinedSet.insert(Rule5Set.begin(), Rule5Set.end());
         CombinedSet.insert(Rule6Set.begin(), Rule6Set.end());
         CombinedSet.insert(Rule7Set.begin(), Rule7Set.end());
         CombinedSet.insert(Rule8Set.begin(), Rule8Set.end());
         CombinedSet.insert(Rule9Set.begin(), Rule9Set.end());
 
+        /// store the load/store instructions in result
+        Result.FilteredInstructions.insert(CombinedSet.begin(), CombinedSet.end());
+
+        /// compute total objects
         ValSet CombinedObjects;
-        CombinedObjects.insert(Rule1Objects.begin(), Rule1Objects.end());
+        //CombinedObjects.insert(Rule1Objects.begin(), Rule1Objects.end());
         CombinedObjects.insert(Rule2Objects.begin(), Rule2Objects.end());
         CombinedObjects.insert(Rule3Objects.begin(), Rule3Objects.end());
+        CombinedObjects.insert(Rule4Objects.begin(), Rule4Objects.end());
         CombinedObjects.insert(Rule5Objects.begin(), Rule5Objects.end());
         CombinedObjects.insert(Rule6Objects.begin(), Rule6Objects.end());
         CombinedObjects.insert(Rule7Objects.begin(), Rule7Objects.end());
         CombinedObjects.insert(Rule8Objects.begin(), Rule8Objects.end());
         CombinedObjects.insert(Rule9Objects.begin(), Rule9Objects.end());
 
+        /// Also store the objects
+        Result.FilteredInstructions.insert(CombinedObjects.begin(), CombinedObjects.end());
 
-        // in case, tht total pointer calculation missed some pointers
+        /// in case, tht total pointer calculation missed some pointers
         totalDataPointers.insert(CombinedSet.begin(), CombinedSet.end());
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule1Set.size() << "(" << Rule1Result.PrioritizedPtrMap.size() << ") "
-        << Rule2Set.size() << "(" << Rule2Result.PrioritizedPtrMap.size() << ") "
-        << Rule3Set.size() << "(" << Rule3Result.PrioritizedPtrMap.size() << ") "
-        << "-" << " "
-        << Rule5Set.size() << "(" << Rule5Result.PrioritizedPtrMap.size() << ") "
-        << Rule6Set.size() << "(" << Rule6Result.PrioritizedPtrMap.size() << ") "
-        << Rule7Set.size() << "(" << Rule7Result.PrioritizedPtrMap.size() << ") "
-        << Rule8Set.size() << "(" << FilteredRule8Result.size() << ") "
-        << Rule9Set.size() << "(" << Rule9Result.PrioritizedPtrMap.size() << ") "
+        << Rule1Set.size() << "(" << Rule1Objects.size() << ") "
+        << Rule2Set.size() << "(" << Rule2Objects.size() << ") "
+        << Rule3Set.size() << "(" << Rule3Objects.size() << ") "
+        << Rule4Set.size() << "(" << Rule4Objects.size() << ") "
+        << Rule5Set.size() << "(" << Rule5Objects.size() << ") "
+        << Rule6Set.size() << "(" << Rule6Objects.size() << ") "
+        << Rule7Set.size() << "(" << Rule7Objects.size() << ") "
+        << Rule8Set.size() << "(" << Rule8Objects.size() << ") "
+        << Rule9Set.size() << "(" << Rule9Objects.size() << ") "
         << CombinedSet.size() << "(" << CombinedObjects.size() << ") " << "\n";
     }
 
-    return DPPAnalysis::Result("not implemented\n");
+    return Result;
 }
 
 PreservedAnalyses DPPAnalysisPrinterPass::run(Module &M, AnalysisManager<Module> &AM) {
@@ -341,4 +415,10 @@ PreservedAnalyses DPPAnalysisPrinterPass::run(Module &M, AnalysisManager<Module>
   Results.print(OS);
 
   return PreservedAnalyses::all();
+}
+
+raw_ostream &DPPAnalysisResult::print(raw_ostream &OS) const {
+    OS << "DPP Analysis:\n";
+
+    return OS;
 }

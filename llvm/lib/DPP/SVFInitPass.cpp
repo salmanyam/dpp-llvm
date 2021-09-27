@@ -23,22 +23,27 @@ AnalysisKey SVFInitPass::Key;
 SVFInitPass::Result SVFInitPass::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
-    SVFModule *SVFModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
+    SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
+    svfModule->buildSymbolTableInfo();
 
-    PAGBuilder Builder;
-    PAG *pag = Builder.build(SVFModule);
+    /// Build Program Assignment Graph (PAG)
+    PAGBuilder builder;
+    PAG* pag = builder.build(svfModule);
 
-    Andersen *Andersen = AndersenWaveDiff::createAndersenWaveDiff(pag);
+    /// Create Andersen's pointer analysis
+    Andersen* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 
-    PTACallGraph *CallGraph = Andersen->getPTACallGraph();
+    /// Call Graph
+    PTACallGraph* callgraph = ander->getPTACallGraph();
 
-    SVFGBuilder SVFGBuilder;
-    SVFG *svfg = SVFGBuilder.buildFullSVFGWithoutOPT(Andersen);
+    /// Sparse value-flow graph (SVFG)
+    SVFGBuilder svfBuilder;
+    SVFG* svfg = svfBuilder.buildFullSVFGWithoutOPT(ander);
 
     errs() << "SVF Initialization Done\n";
 
     Result.SVFParams.pag = pag;
-    Result.SVFParams.CallGraph = CallGraph;
+    Result.SVFParams.CallGraph = callgraph;
     Result.SVFParams.svfg = svfg;
 
     return Result;

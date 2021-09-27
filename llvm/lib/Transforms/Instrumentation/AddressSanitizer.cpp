@@ -88,6 +88,8 @@
 #include <string>
 #include <tuple>
 
+#include "llvm/DPP/DPPAnalysis.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "asan"
@@ -179,6 +181,10 @@ static const size_t kNumberOfAccessSizes = 5;
 static const unsigned kAllocaRzSize = 32;
 
 // Command-line flags.
+
+static cl::opt<bool> ClEnableDPP(
+        "asan-dpp", cl::desc("Enable DPP filtered instrumentation"),
+        cl::Hidden, cl::init(false));
 
 static cl::opt<bool> ClEnableKasan(
     "asan-kernel", cl::desc("Enable KernelAddressSanitizer instrumentation"),
@@ -643,7 +649,7 @@ struct AddressSanitizer {
   void instrumentMemIntrinsic(MemIntrinsic *MI);
   Value *memToShadow(Value *Shadow, IRBuilder<> &IRB);
   bool suppressInstrumentationSiteForDebug(int &Instrumented);
-  bool instrumentFunction(Function &F, const TargetLibraryInfo *TLI);
+  bool instrumentFunction(Function &F, const TargetLibraryInfo *TLI, DenseSet<const Value *> &FilteredInsts);
   bool maybeInsertAsanInitAtFunctionEntry(Function &F);
   bool maybeInsertDynamicShadowAtFunctionEntry(Function &F);
   void markEscapedLocalAllocas(Function &F);
@@ -728,7 +734,8 @@ public:
         &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
     AddressSanitizer ASan(*F.getParent(), &GlobalsMD, CompileKernel, Recover,
                           UseAfterScope);
-    return ASan.instrumentFunction(F, TLI);
+    DenseSet<const Value *> FilteredInsts; //dummy and empty data for function signature matching
+    return ASan.instrumentFunction(F, TLI, FilteredInsts);
   }
 
 private:
@@ -765,12 +772,12 @@ public:
     Mapping = getShadowMapping(TargetTriple, LongSize, this->CompileKernel);
   }
 
-  bool instrumentModule(Module &);
+  bool instrumentModule(Module &, DenseSet<const Value *> &FilteredInsts);
 
 private:
   void initializeCallbacks(Module &M);
 
-  bool InstrumentGlobals(IRBuilder<> &IRB, Module &M, bool *CtorComdat);
+  bool InstrumentGlobals(IRBuilder<> &IRB, Module &M, bool *CtorComdat, DenseSet<const Value *> &FilteredInsts);
   void InstrumentGlobalsCOFF(IRBuilder<> &IRB, Module &M,
                              ArrayRef<GlobalVariable *> ExtendedGlobals,
                              ArrayRef<Constant *> MetadataInitializers);
@@ -853,7 +860,8 @@ public:
         getAnalysis<ASanGlobalsMetadataWrapperPass>().getGlobalsMD();
     ModuleAddressSanitizer ASanModule(M, &GlobalsMD, CompileKernel, Recover,
                                       UseGlobalGC, UseOdrIndicator);
-    return ASanModule.instrumentModule(M);
+    DenseSet<const Value *> FilteredInsts; //dummy and empty data for function signature matching
+    return ASanModule.instrumentModule(M, FilteredInsts);
   }
 
 private:
@@ -1175,7 +1183,8 @@ PreservedAnalyses AddressSanitizerPass::run(Function &F,
   if (auto *R = MAMProxy.getCachedResult<ASanGlobalsMetadataAnalysis>(M)) {
     const TargetLibraryInfo *TLI = &AM.getResult<TargetLibraryAnalysis>(F);
     AddressSanitizer Sanitizer(M, R, CompileKernel, Recover, UseAfterScope);
-    if (Sanitizer.instrumentFunction(F, TLI))
+    DenseSet<const Value *> FilteredInsts; //dummy and empty data for function signature matching
+    if (Sanitizer.instrumentFunction(F, TLI, FilteredInsts))
       return PreservedAnalyses::none();
     return PreservedAnalyses::all();
   }
@@ -1198,8 +1207,26 @@ PreservedAnalyses ModuleAddressSanitizerPass::run(Module &M,
   GlobalsMetadata &GlobalsMD = AM.getResult<ASanGlobalsMetadataAnalysis>(M);
   ModuleAddressSanitizer Sanitizer(M, &GlobalsMD, CompileKernel, Recover,
                                    UseGlobalGC, UseOdrIndicator);
-  if (Sanitizer.instrumentModule(M))
-    return PreservedAnalyses::none();
+
+  DenseSet<const Value *> FilteredInstructions;
+  if (ClEnableDPP){
+      auto DPPResult = AM.getResult<DPP::DPPAnalysis>(M);
+      FilteredInstructions = DPPResult.FilteredInstructions;
+  }
+
+  AddressSanitizer ASanitizer(M, &GlobalsMD, CompileKernel, Recover, false);
+  auto &FAMProxy = AM.getResult<FunctionAnalysisManagerModuleProxy>(M);
+
+  bool Changed = Sanitizer.instrumentModule(M, FilteredInstructions);
+
+  for (Function &F : M) {
+      const TargetLibraryInfo *TLI = &FAMProxy.getManager().getResult<TargetLibraryAnalysis>(F);
+      Changed |= ASanitizer.instrumentFunction(F, TLI, FilteredInstructions);
+  }
+
+  if (Changed)
+      return PreservedAnalyses::none();
+
   return PreservedAnalyses::all();
 }
 
@@ -2250,7 +2277,7 @@ void ModuleAddressSanitizer::InstrumentGlobalsWithMetadataArray(
 // Sets *CtorComdat to true if the global registration code emitted into the
 // asan constructor is comdat-compatible.
 bool ModuleAddressSanitizer::InstrumentGlobals(IRBuilder<> &IRB, Module &M,
-                                               bool *CtorComdat) {
+                                               bool *CtorComdat, DenseSet<const Value *> &FilteredInsts) {
   *CtorComdat = false;
 
   // Build set of globals that are aliased by some GA, where
@@ -2265,8 +2292,17 @@ bool ModuleAddressSanitizer::InstrumentGlobals(IRBuilder<> &IRB, Module &M,
 
   SmallVector<GlobalVariable *, 16> GlobalsToChange;
   for (auto &G : M.globals()) {
-    if (!AliasedGlobalExclusions.count(&G) && shouldInstrumentGlobal(&G))
-      GlobalsToChange.push_back(&G);
+      if (!AliasedGlobalExclusions.count(&G) && shouldInstrumentGlobal(&G)) {
+          /// When prioritization is enabled
+          if (ClEnableDPP){
+              if (FilteredInsts.find(&G) != FilteredInsts.end()) {
+                  errs() << "Found global = " << G << "\n";
+                  GlobalsToChange.push_back(&G);
+              }
+          } else {
+              GlobalsToChange.push_back(&G);
+          }
+      }
   }
 
   size_t n = GlobalsToChange.size();
@@ -2477,7 +2513,7 @@ int ModuleAddressSanitizer::GetAsanVersion(const Module &M) const {
   return Version;
 }
 
-bool ModuleAddressSanitizer::instrumentModule(Module &M) {
+bool ModuleAddressSanitizer::instrumentModule(Module &M, DenseSet<const Value *> &FilteredInsts) {
   initializeCallbacks(M);
 
   // Create a module constructor. A destructor is created lazily because not all
@@ -2499,7 +2535,7 @@ bool ModuleAddressSanitizer::instrumentModule(Module &M) {
   bool CtorComdat = true;
   if (ClGlobals) {
     IRBuilder<> IRB(AsanCtorFunction->getEntryBlock().getTerminator());
-    InstrumentGlobals(IRB, M, &CtorComdat);
+    InstrumentGlobals(IRB, M, &CtorComdat, FilteredInsts);
   }
 
   const uint64_t Priority = GetCtorAndDtorPriority(TargetTriple);
@@ -2671,7 +2707,8 @@ bool AddressSanitizer::suppressInstrumentationSiteForDebug(int &Instrumented) {
 }
 
 bool AddressSanitizer::instrumentFunction(Function &F,
-                                          const TargetLibraryInfo *TLI) {
+                                          const TargetLibraryInfo *TLI,
+                                          DenseSet<const Value *> &FilteredInsts) {
   if (F.getLinkage() == GlobalValue::AvailableExternallyLinkage) return false;
   if (!ClDebugFunc.empty() && ClDebugFunc == F.getName()) return false;
   if (F.getName().startswith("__asan_")) return false;
@@ -2717,7 +2754,16 @@ bool AddressSanitizer::instrumentFunction(Function &F,
     for (auto &Inst : BB) {
       if (LooksLikeCodeInBug11395(&Inst)) return false;
       SmallVector<InterestingMemoryOperand, 1> InterestingOperands;
-      getInterestingMemoryOperands(&Inst, InterestingOperands);
+      /// if enabled, consider only the filtered instructions
+      if (ClEnableDPP){
+          if (FilteredInsts.find(&Inst) != FilteredInsts.end()) {
+              errs() << "Found Instruction = " << Inst << "\n";
+              getInterestingMemoryOperands(&Inst, InterestingOperands);
+          }
+      }else {
+          getInterestingMemoryOperands(&Inst, InterestingOperands);
+      }
+
 
       if (!InterestingOperands.empty()) {
         for (auto &Operand : InterestingOperands) {

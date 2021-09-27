@@ -3,6 +3,7 @@
 //
 
 #include "llvm/DPP/SVFInitPass.h"
+#include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule8.h"
 #include "llvm/DPP/DPPWhiteList.h"
 
@@ -315,11 +316,15 @@ DPPRule8G::Result DPPRule8G::run(Module &M, AnalysisManager<Module> &AM) {
     LLVM_DEBUG(dbgs() << "Starting rule 8...\n");
 
     auto WhiteListResult = AM.getResult<DPPWhiteList>(M);
+    auto FilteredObjs = AM.getResult<DPPRule1G>(M);
 
     // Collect the local results into our Result object
     auto &FAM = AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
 
     LLVM_DEBUG(dbgs() << "Filtering out safely accessed buffers...\n");
+
+    /// write some logs to file
+    string dppLog = "#################### RULE 8 #########################\n";
 
     for (auto &F : M) {
         if (F.isDeclaration()) {
@@ -339,10 +344,28 @@ DPPRule8G::Result DPPRule8G::run(Module &M, AnalysisManager<Module> &AM) {
             /// get objects pointed by the operand and store the objects in the pointer map
             auto objPointsToSet = getPointedObjectsByPtr(Val, svfg);
             for (auto Item: objPointsToSet) {
-                Result.PrioritizedPtrMap.try_emplace(Item->getValue(), 1);
+                // to filter some objects that may be safe
+                if (WhiteListResult.isSafe(Item->getValue())) {
+                    //errs() << "    " << *Val << "\n";
+                    continue;
+                }
+                // if the item object is in filtered list, then add it to result
+                if (FilteredObjs.PrioritizedPtrMap.find(Item->getValue()) != FilteredObjs.PrioritizedPtrMap.end()) {
+                    Result.PrioritizedPtrMap.try_emplace(Item->getValue(), 1);
+
+                    auto SVFNode = getVFGNodeFromValue(pag, svfg, Item->getValue());
+                    dppLog += SVFNode->toString() + "\n";
+                    dppLog += "--------------------------------------------------------------\n";
+                }
             }
         }
     }
+
+    dppLog += "##################################################\n\n\n";
+    DPP::writeDPPLogsToFile(dppLog);
+
+    //errs() << "Rule 8 = " << Result.PrioritizedPtrMap.size() << ", Filtered = "
+    //<< FilteredObjs.PrioritizedPtrMap.size() << "\n";
 
     return Result;
 }
