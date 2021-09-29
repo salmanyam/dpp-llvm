@@ -133,6 +133,10 @@ DPPRule5G::Result DPPRule5G::run(Module &M, AnalysisManager<Module> &AM) {
 
         if (Checker.FoundVulnerablePointer) {
             Result.BadGlobals.try_emplace(&G, "pointer in vulnerable structure");
+
+            if (DPP::isDataPointer(G.getType()->getPointerElementType())) {
+                Result.PrioritizedPtrMap.try_emplace(&G, 1);
+            }
         }
         Checker.reset();
     }

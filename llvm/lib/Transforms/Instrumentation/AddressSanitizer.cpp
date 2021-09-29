@@ -1208,6 +1208,8 @@ PreservedAnalyses ModuleAddressSanitizerPass::run(Module &M,
   ModuleAddressSanitizer Sanitizer(M, &GlobalsMD, CompileKernel, Recover,
                                    UseGlobalGC, UseOdrIndicator);
 
+  errs() << "Address sanitizer running...\n";
+
   DenseSet<const Value *> FilteredInstructions;
   if (ClEnableDPP){
       auto DPPResult = AM.getResult<DPP::DPPAnalysis>(M);
