@@ -24,6 +24,14 @@ static cl::opt<string> DppRuleNum("dpp-rule", cl::init("all"),
                                      cl::desc("Specify the rule number <rule x>"),
                                      cl::value_desc("rule number"));
 
+static cl::opt<int32_t> DppTopK("dpp-topk", cl::init(100),
+                                         cl::desc("Specify the number of top-k data objects"),
+                                         cl::value_desc("number"));
+
+static cl::opt<bool> DppIsLogIndividualRule("dpp-log-rule", cl::Hidden,
+                                  cl::desc("DPP log individual rule"),
+                                  cl::init(false));
+
 static cl::opt<string> InputFileLibFunctions("dpp-input", cl::init("/home/salman/DPP/dpp-llvm/dpp/data/functions.txt"),
                                              cl::desc("Specify the file for DPP related input"),
                                              cl::value_desc("filename"));
@@ -74,6 +82,14 @@ bool llvm::DPP::isUnionTypePunningSupported() {
 
 llvm::DPP::DpiType DPP::getDpiType() {
     return DppDpiType;
+}
+
+int32_t llvm::DPP::getNumTopKDObjs() {
+    return DppTopK;
+}
+
+bool llvm::DPP::isLogIndividualRule() {
+    return DppIsLogIndividualRule;
 }
 
 string llvm::DPP::getRuleNum() {

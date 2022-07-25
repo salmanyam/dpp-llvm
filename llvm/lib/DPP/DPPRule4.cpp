@@ -25,13 +25,13 @@ using namespace SVF;
 [[maybe_unused]] const char DPPRule4G::RuleName[] = "DPPRule4G";
 AnalysisKey DPPRule4G::Key;
 
-/*
+
 const VFGNode* DPPRule4G::getVFGNodeFromValue(PAG *pag, SVFG *svfg, const Value *val) {
     PAGNode* pNode = pag->getPAGNode(pag->getValueNode(val));
     const VFGNode* vNode = svfg->getDefSVFGNode(pNode);
     return vNode;
 }
-
+/*
 ValSet DPPRule4G::getPointersToObject(const Value *Val, SVFG *svfg) {
     /// get all the pointers pointing to an object, i.e., the object pointed by Val
     ValSet Pointers;
@@ -123,14 +123,25 @@ DPPRule4G::Result DPPRule4G::run(Module &M, AnalysisManager<Module> &AM) {
     saber->runOnModule(pag->getModule());
     auto DoubleFreedNodes = saber->getBadNodes();
 
+    /// write some logs to file
+    string dppLog = "#################### RULE 4 #########################\n";
+
     for (auto Item: DoubleFreedNodes) {
         //errs() << *Item << "\n";
         if (auto *AVF = SVFUtil::dyn_cast<AddrVFGNode>(Item)) { // address vfg node
             if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
                 Result.PrioritizedPtrMap.try_emplace(I, 1);
+
+                auto SVFNode = getVFGNodeFromValue(pag, svfg, I);
+                dppLog += SVFNode->toString() + "\n";
+                dppLog += "--------------------------------------------------------------\n";
             }
         }
     }
+
+    dppLog += "##################################################\n\n\n";
+    if (DPP::isLogIndividualRule())
+        DPP::writeDPPLogsToFile(dppLog);
 
     /*LLVM_DEBUG(dbgs() << "Checking the existence of data pointer in conditions...\n");
 

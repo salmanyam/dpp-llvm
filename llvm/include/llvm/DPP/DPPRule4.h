@@ -30,6 +30,7 @@ public:
     static AnalysisKey Key;
 
     Result run(Module &M, AnalysisManager<Module> &AM);
+    const SVF::VFGNode* getVFGNodeFromValue(SVF::PAG *pag, SVF::SVFG *svfg, const Value *val);
 };
 
 class DPPRule4GResult : public DPPResult<DPPRule4G> {

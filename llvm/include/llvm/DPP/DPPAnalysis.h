@@ -23,6 +23,12 @@ namespace SVF {
 namespace llvm {
 namespace DPP {
 
+struct ObjectInfo {
+    const Value * Obj;
+    int NumRulesFlagObj;
+    int NumPointers;
+};
+
 class DPPAnalysisResult {
 public:
   DenseSet<const Value *> FilteredInstructions;
@@ -42,6 +48,7 @@ public:
   ValSet getPointersToObject(const Value *Val, SVF::SVFG *svfg);
   std::pair<ValSet, uint32_t> getTotalDataPointers(SVF::SVFG *svfg);
   ValSet getDataPointersToObjects(DPPMap Map, SVF::SVFG *svfg);
+  ValSet getDataPointersToObject2(const Value *Val, SVF::SVFG *svfg);
   ValSet getDataObjects(DPPMap Map);
   DPPMap filterObjects(DPPMap M1, DPPMap M2);
 };

@@ -115,6 +115,23 @@ ValSet DPPAnalysis::getDataPointersToObjects(DPPMap Map, SVFG *svfg) {
     return totalDataPointers;
 }
 
+ValSet DPPAnalysis::getDataPointersToObject2(const Value *Val, SVFG *svfg) {
+    ValSet totalDataPointers;
+    //for (auto Item : Map) {
+        //auto *const Val = Item.getFirst();
+        //auto Pointers = getPointersToObject(Val, svfg);
+        auto Pointers = GetCompleteUsers(Val, svfg);
+        for (auto Ptr: Pointers) {
+            if (const auto *I = dyn_cast<Instruction>(Ptr)) {
+                if (I->getOpcode() == Instruction::Load || I->getOpcode() == Instruction::Store) {
+                    totalDataPointers.insert(Ptr);
+                }
+            }
+        }
+    //}
+    return totalDataPointers;
+}
+
 ValSet DPPAnalysis::getDataObjects(DPPMap Map) {
     ValSet totalDataObjects;
     for (auto Item : Map) {
@@ -141,6 +158,7 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
     LLVM_DEBUG(dbgs() << "DPPGlobalAnalysis::run starting up...\n");
+    //errs() << "DPPGlobalAnalysis::run starting up...\n";
 
     auto R = AM.getResult<SVFInitPass>(M);
 
@@ -149,6 +167,9 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
     SVFG *svfg = R.SVFParams.svfg;
 
     LLVM_DEBUG(dbgs() << "Counting total data pointers\n");
+    //errs() << "Counting total data pointers\n";
+
+    ValSet AllDataObjects = DPP::GetDataPointerInstructions(svfg, true);
 
     auto objPtrPair = getTotalDataPointers(svfg);
     auto totalDataPointers = objPtrPair.first; // set of data pointers
@@ -310,15 +331,18 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         << Rule9Set.size() << "(" << Rule9Objects.size() << ") " << "\n";
     }
     else {
+        //errs() << "Before rule results..\n";
         auto Rule1Result = AM.getResult<DPPRule1G>(M);
         auto Rule2Result = AM.getResult<DPPRule2G>(M);
         auto Rule3Result = AM.getResult<DPPRule3G>(M);
-        auto Rule4Result = AM.getResult<DPPRule4G>(M);
+        //auto Rule4Result = AM.getResult<DPPRule4G>(M);
         auto Rule5Result = AM.getResult<DPPRule5G>(M);
         auto Rule6Result = AM.getResult<DPPRule6G>(M);
         auto Rule7Result = AM.getResult<DPPRule7G>(M);
         auto Rule8Result = AM.getResult<DPPRule8G>(M);
         auto Rule9Result = AM.getResult<DPPRule9G>(M);
+
+        //errs() << "After rule results..\n";
 
         /// filter rule 2
         //auto FilteredRule2Result = filterObjects(Rule2Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
@@ -339,32 +363,34 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         /// filter rule 9
         //auto FilteredRule9Result = filterObjects(Rule9Result.PrioritizedPtrMap, Rule1Result.PrioritizedPtrMap);
 
-        auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
-        auto Rule2Set = getDataPointersToObjects(Rule2Result.PrioritizedPtrMap, svfg);
-        auto Rule3Set = getDataPointersToObjects(Rule3Result.PrioritizedPtrMap, svfg);
-        auto Rule4Set = getDataPointersToObjects(Rule4Result.PrioritizedPtrMap, svfg);
-        auto Rule5Set = getDataPointersToObjects(Rule5Result.PrioritizedPtrMap, svfg);
-        auto Rule6Set = getDataPointersToObjects(Rule6Result.PrioritizedPtrMap, svfg);
-        auto Rule7Set = getDataPointersToObjects(Rule7Result.PrioritizedPtrMap, svfg);
-        auto Rule8Set = getDataPointersToObjects(Rule8Result.PrioritizedPtrMap, svfg);
-        auto Rule9Set = getDataPointersToObjects(Rule9Result.PrioritizedPtrMap, svfg);
-
         auto Rule1Objects = getDataObjects(Rule1Result.PrioritizedPtrMap);
         auto Rule2Objects = getDataObjects(Rule2Result.PrioritizedPtrMap);
         auto Rule3Objects = getDataObjects(Rule3Result.PrioritizedPtrMap);
-        auto Rule4Objects = getDataObjects(Rule4Result.PrioritizedPtrMap);
+        //auto Rule4Objects = getDataObjects(Rule4Result.PrioritizedPtrMap);
         auto Rule5Objects = getDataObjects(Rule5Result.PrioritizedPtrMap);
         auto Rule6Objects = getDataObjects(Rule6Result.PrioritizedPtrMap);
         auto Rule7Objects = getDataObjects(Rule7Result.PrioritizedPtrMap);
         auto Rule8Objects = getDataObjects(Rule8Result.PrioritizedPtrMap);
         auto Rule9Objects = getDataObjects(Rule9Result.PrioritizedPtrMap);
 
+        auto Rule1Set = getDataPointersToObjects(Rule1Result.PrioritizedPtrMap, svfg);
+        auto Rule2Set = getDataPointersToObjects(Rule2Result.PrioritizedPtrMap, svfg);
+        auto Rule3Set = getDataPointersToObjects(Rule3Result.PrioritizedPtrMap, svfg);
+        //auto Rule4Set = getDataPointersToObjects(Rule4Result.PrioritizedPtrMap, svfg);
+        auto Rule5Set = getDataPointersToObjects(Rule5Result.PrioritizedPtrMap, svfg);
+        auto Rule6Set = getDataPointersToObjects(Rule6Result.PrioritizedPtrMap, svfg);
+        auto Rule7Set = getDataPointersToObjects(Rule7Result.PrioritizedPtrMap, svfg);
+        auto Rule8Set = getDataPointersToObjects(Rule8Result.PrioritizedPtrMap, svfg);
+        auto Rule9Set = getDataPointersToObjects(Rule9Result.PrioritizedPtrMap, svfg);
+
+
+
         /// compute total data pointers, i.e., load/store instructions
         ValSet CombinedSet;
         //CombinedSet.insert(Rule1Set.begin(), Rule1Set.end());
         CombinedSet.insert(Rule2Set.begin(), Rule2Set.end());
         CombinedSet.insert(Rule3Set.begin(), Rule3Set.end());
-        CombinedSet.insert(Rule4Set.begin(), Rule4Set.end());
+        //CombinedSet.insert(Rule4Set.begin(), Rule4Set.end());
         CombinedSet.insert(Rule5Set.begin(), Rule5Set.end());
         CombinedSet.insert(Rule6Set.begin(), Rule6Set.end());
         CombinedSet.insert(Rule7Set.begin(), Rule7Set.end());
@@ -372,37 +398,216 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         CombinedSet.insert(Rule9Set.begin(), Rule9Set.end());
 
         /// store the load/store instructions in result
-        Result.FilteredInstructions.insert(CombinedSet.begin(), CombinedSet.end());
+        //Result.FilteredInstructions.insert(CombinedSet.begin(), CombinedSet.end());
 
         /// compute total objects
         ValSet CombinedObjects;
         //CombinedObjects.insert(Rule1Objects.begin(), Rule1Objects.end());
         CombinedObjects.insert(Rule2Objects.begin(), Rule2Objects.end());
         CombinedObjects.insert(Rule3Objects.begin(), Rule3Objects.end());
-        CombinedObjects.insert(Rule4Objects.begin(), Rule4Objects.end());
+        //CombinedObjects.insert(Rule4Objects.begin(), Rule4Objects.end());
         CombinedObjects.insert(Rule5Objects.begin(), Rule5Objects.end());
         CombinedObjects.insert(Rule6Objects.begin(), Rule6Objects.end());
         CombinedObjects.insert(Rule7Objects.begin(), Rule7Objects.end());
         CombinedObjects.insert(Rule8Objects.begin(), Rule8Objects.end());
         CombinedObjects.insert(Rule9Objects.begin(), Rule9Objects.end());
 
+        /// Rank data object based number of times various rules flag them
+        DPPMap DObjRanks;
+        for (auto DObj: CombinedObjects) {
+            //DObjRanks.try_emplace(DObj, 10);
+            //DObjRanks.try_emplace(DObj, 20);
+            //errs() << "Look up " << DObjRanks.lookup(DObj) << "\n";
+            if (Rule2Objects.contains(DObj)) {
+                if (DObjRanks.find(DObj) != DObjRanks.end()) {
+                    auto rank = DObjRanks.lookup(DObj);
+                    DObjRanks.erase(DObj);
+                    DObjRanks.try_emplace(DObj, rank+1);
+                } else {
+                    DObjRanks.try_emplace(DObj, 1);
+                }
+            }
+
+            if (Rule3Objects.contains(DObj)) {
+                if (DObjRanks.find(DObj) != DObjRanks.end()) {
+                    auto rank = DObjRanks.lookup(DObj);
+                    DObjRanks.erase(DObj);
+                    DObjRanks.try_emplace(DObj, rank+1);
+                } else {
+                    DObjRanks.try_emplace(DObj, 1);
+                }
+            }
+
+            if (Rule5Objects.contains(DObj)) {
+                if (DObjRanks.find(DObj) != DObjRanks.end()) {
+                    auto rank = DObjRanks.lookup(DObj);
+                    DObjRanks.erase(DObj);
+                    DObjRanks.try_emplace(DObj, rank+1);
+                } else {
+                    DObjRanks.try_emplace(DObj, 1);
+                }
+            }
+
+            if (Rule6Objects.contains(DObj)) {
+                if (DObjRanks.find(DObj) != DObjRanks.end()) {
+                    auto rank = DObjRanks.lookup(DObj);
+                    DObjRanks.erase(DObj);
+                    DObjRanks.try_emplace(DObj, rank+1);
+                } else {
+                    DObjRanks.try_emplace(DObj, 1);
+                }
+            }
+
+            if (Rule7Objects.contains(DObj)) {
+                if (DObjRanks.find(DObj) != DObjRanks.end()) {
+                    auto rank = DObjRanks.lookup(DObj);
+                    DObjRanks.erase(DObj);
+                    DObjRanks.try_emplace(DObj, rank+1);
+                } else {
+                    DObjRanks.try_emplace(DObj, 1);
+                }
+            }
+
+            if (Rule8Objects.contains(DObj)) {
+                if (DObjRanks.find(DObj) != DObjRanks.end()) {
+                    auto rank = DObjRanks.lookup(DObj);
+                    DObjRanks.erase(DObj);
+                    DObjRanks.try_emplace(DObj, rank+1);
+                } else {
+                    DObjRanks.try_emplace(DObj, 1);
+                }
+            }
+
+            if (Rule9Objects.contains(DObj)) {
+                if (DObjRanks.find(DObj) != DObjRanks.end()) {
+                    auto rank = DObjRanks.lookup(DObj);
+                    DObjRanks.erase(DObj);
+                    DObjRanks.try_emplace(DObj, rank+1);
+                } else {
+                    DObjRanks.try_emplace(DObj, 1);
+                }
+            }
+        }
+
+        //std::vector<std::pair<const Value *, int>> DObjItems;
+        std::vector<ObjectInfo> DObjItems;
+        for (auto Item: DObjRanks) {
+            auto Pointers = GetCompleteUsers(Item.getFirst(), svfg);
+            auto LoadStorePtrs = getDataPointersToObject2(Item.getFirst(), svfg);
+            ObjectInfo Obj = {Item.getFirst(), Item.getSecond(), LoadStorePtrs.size()};
+            //DObjItems.push_back(std::make_pair(Item.getFirst(),
+                                        //       Item.getSecond() * (0.5*Pointers.size() + 0.5*LoadStorePtrs.size())));
+            DObjItems.push_back(Obj);
+        }
+
+        //auto cmp = [](std::pair<const Value *, int> const & a, std::pair<const Value *, int> const & b) {
+          //  return a.second != b.second?  a.second > b.second : a.first > b.first;
+        //};
+
+        auto cmp = [](ObjectInfo const & a, ObjectInfo const & b) {
+            return a.NumRulesFlagObj != b.NumRulesFlagObj?  a.NumRulesFlagObj > b.NumRulesFlagObj : a.NumPointers > b.NumPointers;
+        };
+
+        std::sort(DObjItems.begin(), DObjItems.end(), cmp);
+
+        auto topk = int(round(DObjItems.size() * DPP::getNumTopKDObjs() / 100.0)); //top-k percent of data objects
+
+        if (topk < 1)
+            topk = 1;
+
+        /// write some logs to file
+        string dppLog = "#################### SUMMARY: " + to_string(topk) +" data objects #########################\n";
+
+        errs() << "Top k = " << topk << "\n";
+
+        int count = 0;
+        for(auto Item: DObjItems) {
+            if (count >= topk) break;
+            count++;
+            Result.FilteredInstructions.insert(Item.Obj);
+            auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.Obj);
+            errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t" << Item.NumPointers << "\n";
+            dppLog += SVFNode->toString() + "\t" +
+                    to_string(Item.NumRulesFlagObj) + "\t" +
+                    to_string(Item.NumPointers) + "\n";
+            dppLog += "--------------------------------------------------------------\n";
+        }
+
+/*
+        int count = 0;
+        int lastItemNumRulesFlagObj = 0;
+        int lastItemNumPointers = 0;
+        for(auto Item: DObjItems) {
+            if (count >= topk) break;
+            count++;
+            //errs() << *Item.first << "============>" << Item.second << "\n";
+            lastItemNumRulesFlagObj = Item.NumRulesFlagObj;
+            lastItemNumPointers = Item.NumPointers;
+        }
+        int actual_objects = 0;
+        for(auto Item: DObjItems) {
+            if (lastItemNumRulesFlagObj > 0 && Item.NumRulesFlagObj >= lastItemNumRulesFlagObj &&
+            Item.NumPointers >= lastItemNumPointers) {
+                actual_objects++;
+                auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.Obj);
+                errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t" << Item.NumPointers << "\n";
+                dppLog += SVFNode->toString() + "\t" +
+                        to_string(Item.NumRulesFlagObj) + "\t" +
+                        to_string(Item.NumPointers) + "\n";
+                dppLog += "--------------------------------------------------------------\n";
+            }
+        }*/
+
+
         /// Also store the objects
-        Result.FilteredInstructions.insert(CombinedObjects.begin(), CombinedObjects.end());
+        /// it's done inside dobj items print loop
+        //Result.FilteredInstructions.insert(CombinedObjects.begin(), CombinedObjects.end());
 
         /// in case, tht total pointer calculation missed some pointers
         totalDataPointers.insert(CombinedSet.begin(), CombinedSet.end());
+
+        //errs() << "\nTOP-K = " + to_string(topk) + ", Actual = " + to_string(actual_objects) + "\n";
 
         errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule1Set.size() << "(" << Rule1Objects.size() << ") "
         << Rule2Set.size() << "(" << Rule2Objects.size() << ") "
         << Rule3Set.size() << "(" << Rule3Objects.size() << ") "
-        << Rule4Set.size() << "(" << Rule4Objects.size() << ") "
+        //        << Rule4Set.size() << "(" << Rule4Objects.size() << ") "
+        << " - "
         << Rule5Set.size() << "(" << Rule5Objects.size() << ") "
         << Rule6Set.size() << "(" << Rule6Objects.size() << ") "
         << Rule7Set.size() << "(" << Rule7Objects.size() << ") "
         << Rule8Set.size() << "(" << Rule8Objects.size() << ") "
         << Rule9Set.size() << "(" << Rule9Objects.size() << ") "
         << CombinedSet.size() << "(" << CombinedObjects.size() << ") " << "\n";
+
+        dppLog += "\nTOP-K = " + to_string(topk) + ", Actual = " + to_string(/*actual_objects*/0) + "\n"
+                + to_string(totalDataPointers.size()) + "(" + to_string(totalDataObjects) + ") "
+                + to_string(Rule1Set.size()) + "(" + to_string(Rule1Objects.size()) + ") "
+                + to_string(Rule2Set.size()) + "(" + to_string(Rule2Objects.size()) + ") "
+                + to_string(Rule3Set.size()) + "(" + to_string(Rule3Objects.size()) + ") "
+                //        << Rule4Set.size() << "(" << Rule4Objects.size() << ") "
+                + " - "
+                + to_string(Rule5Set.size()) + "(" + to_string(Rule5Objects.size()) + ") "
+                + to_string(Rule6Set.size()) + "(" + to_string(Rule6Objects.size()) + ") "
+                + to_string(Rule7Set.size()) + "(" + to_string(Rule7Objects.size()) + ") "
+                + to_string(Rule8Set.size()) + "(" + to_string(Rule8Objects.size()) + ") "
+                + to_string(Rule9Set.size()) + "(" + to_string(Rule9Objects.size()) + ") "
+                + to_string(CombinedSet.size()) + "(" + to_string(CombinedObjects.size()) + ") " + "\n";
+
+
+        /*dppLog += "====================HERE STARTS ALL THE OBJECTS=====================\n";
+        for(auto Item: AllDataObjects) {
+            ///skip if prioritized objects have this item
+            if (CombinedObjects.find(Item) != CombinedObjects.end())
+                continue;
+
+            auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+            dppLog += SVFNode->toString() + "\n";
+            dppLog += "--------------------------------------------------------------\n";
+        }*/
+
+        DPP::writeDPPLogsToFile(dppLog);
     }
 
     return Result;

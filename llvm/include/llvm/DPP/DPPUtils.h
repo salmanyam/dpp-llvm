@@ -42,6 +42,8 @@ void setDppDpiUnionTypePunning(bool value);
 
 DpiType getDpiType();
 std::string getRuleNum();
+bool isLogIndividualRule();
+int32_t getNumTopKDObjs();
 std::string getInputFilename();
 std::string getOutputFilename();
 int32_t getNumBackwardCmps();
