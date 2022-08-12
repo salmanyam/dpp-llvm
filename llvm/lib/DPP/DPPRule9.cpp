@@ -519,7 +519,8 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
     }
 
     dppLog += "##################################################\n\n\n";
-    DPP::writeDPPLogsToFile(dppLog);
+    if (DPP::isLogIndividualRule())
+        DPP::writeDPPLogsToFile(dppLog);
 
     return Result;
 }

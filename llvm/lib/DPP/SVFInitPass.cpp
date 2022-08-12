@@ -24,7 +24,7 @@ SVFInitPass::Result SVFInitPass::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
     SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
-    svfModule->buildSymbolTableInfo();
+    //svfModule->buildSymbolTableInfo();
 
     /// Build Program Assignment Graph (PAG)
     PAGBuilder builder;

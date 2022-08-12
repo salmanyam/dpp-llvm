@@ -273,7 +273,8 @@ DPPRule3G::Result DPPRule3G::run(Module &M, AnalysisManager<Module> &AM) {
     }
 
     dppLog += "##################################################\n\n\n";
-    DPP::writeDPPLogsToFile(dppLog);
+    if (DPP::isLogIndividualRule())
+        DPP::writeDPPLogsToFile(dppLog);
 
     for (auto Item: AlreadyCovered) {
         Result.PrioritizedPtrMap.try_emplace(Item, 1);

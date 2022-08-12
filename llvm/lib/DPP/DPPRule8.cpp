@@ -362,7 +362,8 @@ DPPRule8G::Result DPPRule8G::run(Module &M, AnalysisManager<Module> &AM) {
     }
 
     dppLog += "##################################################\n\n\n";
-    DPP::writeDPPLogsToFile(dppLog);
+    if (DPP::isLogIndividualRule())
+        DPP::writeDPPLogsToFile(dppLog);
 
     //errs() << "Rule 8 = " << Result.PrioritizedPtrMap.size() << ", Filtered = "
     //<< FilteredObjs.PrioritizedPtrMap.size() << "\n";
