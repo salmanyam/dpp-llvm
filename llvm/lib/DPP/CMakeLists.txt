@@ -13,6 +13,7 @@ add_llvm_component_library(DPP
   DPPUtils.cpp
   DPPInstr.cpp
   DPPWhiteList.cpp
+  AsanFuncAttr.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${SVF_SOURCE_DIR}/include

@@ -184,7 +184,7 @@ static const unsigned kAllocaRzSize = 32;
 
 static cl::opt<bool> ClEnableDPP(
         "asan-dpp", cl::desc("Enable DPP filtered instrumentation"),
-        cl::Hidden, cl::init(false));
+        cl::Hidden, cl::init(true));
 
 static cl::opt<bool> ClEnableKasan(
     "asan-kernel", cl::desc("Enable KernelAddressSanitizer instrumentation"),
@@ -2763,6 +2763,7 @@ bool AddressSanitizer::instrumentFunction(Function &F,
               getInterestingMemoryOperands(&Inst, InterestingOperands);
           }
       }else {
+	  //errs() << "ASAN Found Instruction = " << Inst << "\n";
           getInterestingMemoryOperands(&Inst, InterestingOperands);
       }
 

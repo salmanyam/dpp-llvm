@@ -1,6 +1,8 @@
 IF main
 IF __isoc99_scanf
+IF scanf
 IF __isoc99_fscanf
+IF fscanf
 IF freaduntil
 IF fread
 IF read

@@ -524,8 +524,11 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         for(auto Item: DObjItems) {
             if (count >= topk) break;
             count++;
-            Result.FilteredInstructions.insert(Item.Obj);
-            auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.Obj);
+
+	    auto LoadStorePtrs = getDataPointersToObject2(Item.Obj, svfg);
+            Result.FilteredInstructions.insert(LoadStorePtrs.begin(), LoadStorePtrs.end());
+            
+	    auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.Obj);
             errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t" << Item.NumPointers << "\n";
             dppLog += SVFNode->toString() + "\t" +
                     to_string(Item.NumRulesFlagObj) + "\t" +

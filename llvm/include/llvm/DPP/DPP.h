@@ -24,5 +24,6 @@
 #include "llvm/DPP/DPPRule9.h"
 #include "llvm/DPP/DPPInstr.h"
 #include "llvm/DPP/DPPWhiteList.h"
+#include "llvm/DPP/AsanFuncAttr.h"
 
 #endif // LLVM_ANALYSIS_DPP_DPP_H

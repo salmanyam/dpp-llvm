@@ -55,9 +55,18 @@ unsigned int DPPRule1G::getInputArgStart(StringRef funcName) {
 }
 
 const VFGNode* DPPRule1G::getVFGNodeFromValue(PAG *pag, SVFG *svfg, const Value *val) {
-    PAGNode* pNode = pag->getPAGNode(pag->getValueNode(val));
-    const VFGNode* vNode = svfg->getDefSVFGNode(pNode);
-    return vNode;
+    if (val == nullptr) {
+        errs() << "\n\n\n\n\n=========VALNULL=============\n\n\n\n";
+    }
+    NodeID ptr = pag->getValueNode(val);
+    if(ptr!= pag->getBlkPtr() && ptr!= pag->getNullPtr()) {
+        PAGNode* pNode = pag->getPAGNode(ptr);
+        const VFGNode* vNode = svfg->getDefSVFGNode(pNode);
+        return vNode;
+    }
+    //PAGNode* pNode = pag->getPAGNode(pag->getValueNode(val));
+    //const VFGNode* vNode = svfg->getDefSVFGNode(pNode);
+    return nullptr;
 }
 
 DenseSet<SVF::PAGNode *> DPPRule1G::getPointedObjectsByPtr(const Value *Ptr, SVFG *svfg) {
@@ -100,7 +109,7 @@ void DPPRule1G::updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
     {
         const VFGNode* vNode = worklist.pop();
         LLVM_DEBUG(dbgs() << "TAINTING: " << *vNode << "\n");
-        //errs() << "TAINTING: " << *vNode << "\n";
+        errs() << "TAINTING: " << *vNode << "\n";
 
         TaintedSVFNodes.insert(vNode->getId());
 
@@ -132,6 +141,7 @@ void DPPRule1G::updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
                         //errs() << "printing pointed objects...\n";
                         for (auto Item: objPointsToSet) {
                             const VFGNode *objVFGNode = getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue());
+                            //errs() << "\n get_vfg cw17 " << *objVFGNode << "\n";
                             if (TaintedSVFNodes.find(objVFGNode->getId()) == TaintedSVFNodes.end()) {
                                 //errs() << *objVFGNode << "\n";
                                 worklist.push(objVFGNode);
@@ -159,6 +169,7 @@ void DPPRule1G::updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
                         //errs() << "printing pointed objects...\n";
                         for (auto Item: objPointsToSet) {
                             const VFGNode *objVFGNode = getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue());
+                            //errs() << "\n get_vfg cw18 " << *objVFGNode << "\n";
                             if (TaintedSVFNodes.find(objVFGNode->getId()) == TaintedSVFNodes.end()) {
                                 //errs() << *objVFGNode << "\n";
                                 worklist.push(objVFGNode);
@@ -214,7 +225,7 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
     LLVM_DEBUG(dbgs() << "Rule1 initialization done...\n");
     errs() << "Rule1 initialization done...\n";
     //svfg->dump("/home/salman/DPP/data/common.svfg", false);
-    svfg->dump("/home/salman/DPP/data/rules-minimal/figure/figure2.svfg", false);
+    svfg->dump("/home/salman/DPP/dpp-data/current.svfg", false);
 
 
     /// construct the ICFG graph to get the compare instructions to approximate whether
@@ -246,6 +257,7 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
                     if (auto *ArgVal = dyn_cast<Value>(Arg)) {
                         //errs() << "Arg value = " << *ArgVal << "\n";
                         const VFGNode *vfgNode = getVFGNodeFromValue(pag, svfg, ArgVal);
+                        //errs() << "\n get_vfg cw20 " << *vfgNode << "\n";
                         updateTaintList(svfg, vfgNode);
                     }
                 }
@@ -264,7 +276,7 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
         for(auto func : callees) {
             if (isInputReadingFunction(func->getName())) {
                 LLVM_DEBUG(dbgs() << func->getName() << "\n");
-                //errs() << "Function = " << func->getName() << "\n";
+                errs() << "Function = " << func->getName() << "\n";
 
                 unsigned int paramIndex = 0;
                 for (auto P: CS->getActualParms()) {
@@ -295,6 +307,7 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
                     auto objPointsToSet = getPointedObjectsByPtr(P->getValue(), svfg);
                     for (auto Item: objPointsToSet) {
                         const VFGNode *objVFGNode = getVFGNodeFromValue(pag, svfg, Item->getValue());
+                        //errs() << "\n get_vfg cw1 " << *objVFGNode << "\n";
                         if (TaintedSVFNodes.find(objVFGNode->getId()) == TaintedSVFNodes.end()) {
                             updateTaintList(svfg, objVFGNode);
                             //alreadyTaintedObjVFGNode.insert(objVFGNode->getId());
@@ -307,10 +320,14 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
         }
     }
 
+    //return Result;
+
     /// Taint call instructions that have one or more tainted parameters
     /// propagate the taints through the return value of the call instructions
     for (auto SV = svfg->begin(); SV != svfg->end(); ++SV) {
         VFGNode *V = SV->second;
+	errs() << "ALL_SVFG: " << *V << "\n";
+
         if (auto *ARV = SVFUtil::dyn_cast<ActualRetVFGNode>(V)) {
             if (TaintedSVFNodes.find(ARV->getId()) != TaintedSVFNodes.end()) {
                 /// just to make sure the taints get propagated
@@ -333,23 +350,34 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
 
                         auto Operand1 = CI->getOperand(0);
                         auto Operand2 = CI->getOperand(1);
+			
+			/// skip constant type parameter
+                    	if(!SVFUtil::isa<Constant>(Operand2)) {
+                        	
                         /// get objects pointed by the operand and taint the objects and their successors
                         const VFGNode *objVFGNode2 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand2);
+                        //errs() << "\n get_vfg cw2 " << *objVFGNode2 << "\n";
                         if (TaintedSVFNodes.find(objVFGNode2->getId()) != TaintedSVFNodes.end()) {
                             //errs() << *objVFGNode << "\n";
                             const VFGNode *objVFGNode1 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand1);
+			    //errs() << "\n get_vfg cw3 " << *objVFGNode1 << "\n";
                             updateTaintList(svfg, objVFGNode1);
                             auto objPointsToSet = getPointedObjectsByPtr(Operand1, svfg);
                             for (auto Item: objPointsToSet) {
-                                if(Item->hasValue())
-                                    updateTaintList(svfg,
-                                                    getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue()));
+                                if(Item->hasValue()) {
+                                    const VFGNode *objVFGNode5 = getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue());
+				    //errs() << "\n get_vfg cw4 " << *objVFGNode5 << "\n";
+				    updateTaintList(svfg, objVFGNode5);
+				}
                             }
                         }
+			}
                     }
                 }
             }
 
+	    /// check if a call instruction has one or more tainted params
+	    /// if so, taint the return value of the call instruction
             bool RetSVFGTainted = false;
             for (auto P: ARV->getCallSite()->getActualParms()) {
                 /// skip dummy pag nodes
@@ -404,20 +432,28 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
 
                             auto Operand1 = CI->getOperand(0);
                             auto Operand2 = CI->getOperand(1);
-                            /// get objects pointed by the operand and taint the objects and their successors
+			    /// skip constant type parameter
+                            if(!SVFUtil::isa<Constant>(Operand2)) {
+                            
+		            /// get objects pointed by the operand and taint the objects and their successors
                             const VFGNode *objVFGNode2 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand2);
+			    //errs() << "\n get_vfg cw5 " << *objVFGNode2 << "\n";
                             if (TaintedSVFNodes.find(objVFGNode2->getId()) != TaintedSVFNodes.end()) {
                                 //errs() << *objVFGNode << "\n";
                                 const VFGNode *objVFGNode1 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand1);
+				//errs() << "\n get_vfg cw6 " << *objVFGNode1 << "\n";
                                 updateTaintList(svfg, vNode);
                                 updateTaintList(svfg, objVFGNode1);
                                 auto objPointsToSet = getPointedObjectsByPtr(Operand1, svfg);
                                 for (auto Item: objPointsToSet) {
-                                    if(Item->hasValue())
-                                        updateTaintList(svfg,
-                                                        getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue()));
+                                    if(Item->hasValue()) {
+				        const VFGNode *objVFGNode6 = getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue());
+                                        //errs() << "\n get_vfg cw7 " << *objVFGNode6 << "\n";
+					updateTaintList(svfg, objVFGNode6);
+				    }
                                 }
                             }
+			    }
                         }
                     }
                 }
@@ -440,20 +476,28 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
 
                             auto Operand1 = CI->getOperand(0);
                             auto Operand2 = CI->getOperand(1);
-                            /// get objects pointed by the operand and taint the objects and their successors
+			    /// skip constant type parameter
+                            if(!SVFUtil::isa<Constant>(Operand2)) {
+                            
+	                    /// get objects pointed by the operand and taint the objects and their successors
                             const VFGNode *objVFGNode2 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand2);
+			    //errs() << "\n get_vfg cw8 " << *objVFGNode2 << "\n";
                             if (TaintedSVFNodes.find(objVFGNode2->getId()) != TaintedSVFNodes.end()) {
                                 //errs() << *objVFGNode << "\n";
                                 const VFGNode *objVFGNode1 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand1);
+			        //errs() << "\n get_vfg cw9 " << *objVFGNode1 << "\n";
                                 updateTaintList(svfg, vNode);
                                 updateTaintList(svfg, objVFGNode1);
                                 auto objPointsToSet = getPointedObjectsByPtr(Operand1, svfg);
                                 for (auto Item: objPointsToSet) {
-                                    if(Item->hasValue())
-                                        updateTaintList(svfg,
-                                                        getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue()));
+                                    if(Item->hasValue()) {
+                                        const VFGNode *objVFGNode8 = getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue());
+			                //errs() << "\n get_vfg cw10 " << *objVFGNode8 << "\n";
+					updateTaintList(svfg, objVFGNode8);
+				    }
                                 }
                             }
+			    }
                         }
                     }
                 }
@@ -479,20 +523,28 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
                             /// get objects pointed by the operand and taint the objects and their successors
                             // auto objPointsToSet = getPointedObjectsByPtr(Operand2, svfg);
                             // errs() << objPointsToSet.size() << "\n";
-
-                            const VFGNode *objVFGNode2 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand2);
+                            
+			    /// skip constant type parameter
+                            if(!SVFUtil::isa<Constant>(Operand2)) {
+                            
+		            const VFGNode *objVFGNode2 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand2);
+			    //errs() << "\n get_vfg cw11 " << *objVFGNode2 << "\n";
                             if (TaintedSVFNodes.find(objVFGNode2->getId()) != TaintedSVFNodes.end()) {
                                 //errs() << *objVFGNode << "\n";
                                 const VFGNode *objVFGNode1 = getVFGNodeFromValue(svfg->getPAG(), svfg, Operand1);
+			        //errs() << "\n get_vfg cw12 " << *objVFGNode1 << "\n";
                                 updateTaintList(svfg, vNode);
                                 updateTaintList(svfg, objVFGNode1);
                                 auto objPointsToSet = getPointedObjectsByPtr(Operand1, svfg);
                                 for (auto Item: objPointsToSet) {
-                                    if(Item->hasValue())
-                                        updateTaintList(svfg,
-                                                        getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue()));
-                                }
+                                    if(Item->hasValue()) {
+					const VFGNode *objVFGNode4 = getVFGNodeFromValue(svfg->getPAG(), svfg, Item->getValue());
+			        	//errs() << "\n get_vfg cw13 " << *objVFGNode4 << "\n";
+                                        updateTaintList(svfg, objVFGNode4);
+				    }
+				}
                             }
+			    }
                         }
                     }
                 }
@@ -517,32 +569,49 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
             /// rest of the nodes that does not satisfy AVF->getICFGNode()->getId() == 0 condition are instructions
             if (const auto *I = SVFUtil::dyn_cast<Instruction>(AVF->getInst())) {
                 /// skip the alloca instruction because its operand does not have any associated SVF node
-                if (I->getOpcode() == Instruction::Alloca)
+                if (I->getOpcode() == Instruction::Alloca) {
                     continue;
-
+		}
+                
                 /// loop through all the operands and update the taint list if
                 /// any operands of the instruction depend on user input
+		// errs() << "Instruction = " << *I << "\n";
                 for (auto Op = I->op_begin(); Op != I->op_end(); ++Op) {
+		    //if (true) continue;
+	            if (I->getOpcode() == Instruction::Invoke && Op->getOperandNo() > 0)
+			    continue;
+		    
+		    /// skip constant type parameter
+                    if(!SVFUtil::isa<Constant>(Op->get())) {
+		
+		  
                     const VFGNode* vNode = getVFGNodeFromValue(pag, svfg, Op->get());
+                    //errs() << "\n get_vfg cw14 " << *vNode << "\n";
                     /// if an operand is tainted, update the tainted list
                     if (TaintedSVFNodes.find(vNode->getId()) != TaintedSVFNodes.end()) {
-                        /// get svf node for the instruction
+			//if (true)continue;
+			{
+
+			/// get svf node for the instruction
                         auto vNodeInst = getVFGNodeFromValue(pag, svfg, I);
+                        //errs() << "\n get_vfg cw22 " << *vNodeInst << "\n";
                         LLVM_DEBUG(dbgs() << "ADDR: " << *vNodeInst << "\n");
 
                         /// update the unsafe svf node
                         UnsafeSVFNodes.insert(vNodeInst->getId());
 
-                        LLVM_DEBUG(dbgs() << "*********UPDATE TAINT LIST START: " << vNodeInst->getId() << "*********\n");
+                        LLVM_DEBUG(dbgs() << "********UPDATE TAINT LIST START: " << vNodeInst->getId() << "********\n");
                         updateTaintList(svfg, vNodeInst);
-                        LLVM_DEBUG(dbgs() << "*********UPDATE TAINT LIST END***********\n");
+                        LLVM_DEBUG(dbgs() << "********UPDATE TAINT LIST END**********\n");
 
                         Result.TaintedSVFObjNodes.insert(vNodeInst->getId());
 
                         /// no need to look further because vNode is for the whole instruction,
                         /// other operand will also have the same instruction
                         break;
+			}
                     }
+		    }
                 }
             }
         }
@@ -563,6 +632,7 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
                     }
 
                     const VFGNode* vNode = getVFGNodeFromValue(pag, svfg, Op->get());
+                    //errs() << "\n get_vfg cw15 " << *vNode << "\n";
                     if (TaintedSVFNodes.find(vNode->getId()) != TaintedSVFNodes.end()) {
                         foundTaintedOperand = true;
                         break;
@@ -577,6 +647,7 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
                         // lookup the svf node from the pag.value and insert the ID to unsafe node list
                         //UnsafeSVFNodes.insert(getVFGNodeFromValue(pag, svfg, Item->getValue())->getId());
                         const VFGNode* PtrvNode = getVFGNodeFromValue(pag, svfg, Item->getValue());
+                        //errs() << "\n get_vfg cw16 " << *PtrvNode << "\n";
                         updateTaintList(svfg, PtrvNode);
 
                         Result.TaintedSVFObjNodes.insert(PtrvNode->getId());
