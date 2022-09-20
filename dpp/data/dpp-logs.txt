@@ -1,1 +1,112 @@
-#dummy file, necessary for logging
+#################### SUMMARY: 36 data objects #########################
+AddrVFGNode ID: 208 AddrPE: [406<--407]	
+   %9 = tail call noalias dereferenceable_or_null(40) i8* @calloc(i64 1, i64 40) #20, !dbg !221 { ln: 150  cl: 5  fl: convert-fcrontab.c }	4	118
+--------------------------------------------------------------
+AddrVFGNode ID: 203 AddrPE: [376<--377]	
+   %2 = alloca [1024 x i8], align 16 { ln: 144 fl: convert-fcrontab.c }	4	21
+--------------------------------------------------------------
+AddrVFGNode ID: 263 AddrPE: [1195<--1196]	
+   %2 = alloca [1024 x i8], align 16 {  }	4	21
+--------------------------------------------------------------
+AddrVFGNode ID: 283 AddrPE: [1733<--1734]	
+   %4 = alloca [1024 x i8], align 16 {  }	3	65
+--------------------------------------------------------------
+AddrVFGNode ID: 264 AddrPE: [1206<--1207]	
+   %9 = tail call %struct._IO_FILE* @fopen(i8* %7, i8* %8) {  }	3	21
+--------------------------------------------------------------
+AddrVFGNode ID: 222 AddrPE: [564<--565]	
+   %95 = call noalias dereferenceable_or_null(120) i8* @calloc(i64 1, i64 120) #20, !dbg !326 { ln: 190  cl: 5  fl: convert-fcrontab.c }	3	14
+--------------------------------------------------------------
+AddrVFGNode ID: 221 AddrPE: [534<--535]	
+   %109 = call noalias dereferenceable_or_null(16) i8* @calloc(i64 1, i64 16) #20, !dbg !337 { ln: 184  cl: 2  fl: convert-fcrontab.c }	3	14
+--------------------------------------------------------------
+AddrVFGNode ID: 218 AddrPE: [497<--498]	
+   %57 = call noalias i8* @malloc(i64 %56) #20, !dbg !296 { ln: 94  cl: 9  fl: convert-fcrontab.c }	3	14
+--------------------------------------------------------------
+AddrVFGNode ID: 220 AddrPE: [519<--520]	
+   %70 = call noalias dereferenceable_or_null(16) i8* @calloc(i64 1, i64 16) #20, !dbg !302 { ln: 180  cl: 5  fl: convert-fcrontab.c }	3	14
+--------------------------------------------------------------
+AddrVFGNode ID: 225 AddrPE: [608<--609]	
+   %202 = call noalias dereferenceable_or_null(120) i8* @calloc(i64 1, i64 120) #20, !dbg !414 { ln: 208  cl: 2  fl: convert-fcrontab.c }	3	14
+--------------------------------------------------------------
+AddrVFGNode ID: 227 AddrPE: [681<--682]	
+   %173 = call noalias i8* @malloc(i64 %172) #20, !dbg !385 { ln: 94  cl: 9  fl: convert-fcrontab.c }	3	6
+--------------------------------------------------------------
+AddrVFGNode ID: 228 AddrPE: [711<--712]	
+   %195 = call noalias i8* @malloc(i64 %194) #20, !dbg !405 { ln: 94  cl: 9  fl: convert-fcrontab.c }	3	6
+--------------------------------------------------------------
+AddrVFGNode ID: 226 AddrPE: [640<--641]	
+   %147 = call noalias i8* @malloc(i64 %146) #20, !dbg !359 { ln: 94  cl: 9  fl: convert-fcrontab.c }	3	6
+--------------------------------------------------------------
+AddrVFGNode ID: 241 AddrPE: [912<--913]	
+   %51 = tail call noalias i8* @malloc(i64 %50) #21, !dbg !97 { ln: 271  cl: 22  fl: convert-fcrontab.c }	3	5
+--------------------------------------------------------------
+AddrVFGNode ID: 175 AddrPE: [24<--25]	
+ @stderr = external dso_local local_unnamed_addr global %struct._IO_FILE*, align 8 { Glob  }	2	22
+--------------------------------------------------------------
+AddrVFGNode ID: 210 AddrPE: [420<--421]	
+   %16 = tail call %struct._IO_FILE* @fopen(i8* %0, i8* %15), !dbg !224 { ln: 152  cl: 15  fl: convert-fcrontab.c }	2	5
+--------------------------------------------------------------
+AddrVFGNode ID: 223 AddrPE: [572<--573]	
+   %100 = call noalias i8* @malloc(i64 %99) #20, !dbg !329 { ln: 94  cl: 9  fl: convert-fcrontab.c }	2	4
+--------------------------------------------------------------
+AddrVFGNode ID: 290 AddrPE: [2740<--2741]	
+   %7 = alloca [516 x i8], align 16 {  }	2	0
+--------------------------------------------------------------
+AddrVFGNode ID: 247 AddrPE: [1001<--1002]	
+   %6 = tail call noalias i8* @malloc(i64 %5) #21 {  }	1	15
+--------------------------------------------------------------
+AddrVFGNode ID: 273 AddrPE: [1401<--1402]	
+   %164 = call noalias i8* @malloc(i64 %163) #20 {  }	1	3
+--------------------------------------------------------------
+AddrVFGNode ID: 274 AddrPE: [1417<--1418]	
+   %177 = call noalias i8* @malloc(i64 %176) #20 {  }	1	3
+--------------------------------------------------------------
+AddrVFGNode ID: 272 AddrPE: [1384<--1385]	
+   %151 = call noalias i8* @malloc(i64 %150) #20 {  }	1	3
+--------------------------------------------------------------
+AddrVFGNode ID: 311 AddrPE: [2949<--2950]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 325 AddrPE: [3103<--3104]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 357 AddrPE: [3448<--3449]	
+   %5 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 388 AddrPE: [3854<--3855]	
+   %3 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 319 AddrPE: [3027<--3028]	
+   %5 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 369 AddrPE: [3586<--3587]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 362 AddrPE: [3522<--3523]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 381 AddrPE: [3734<--3735]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 351 AddrPE: [3378<--3379]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 345 AddrPE: [3316<--3317]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 339 AddrPE: [3240<--3241]	
+   %5 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 385 AddrPE: [3799<--3800]	
+   %3 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 375 AddrPE: [3663<--3664]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+AddrVFGNode ID: 333 AddrPE: [3171<--3172]	
+   %4 = alloca [1 x %struct.__va_list_tag], align 16 {  }	1	0
+--------------------------------------------------------------
+
+TOP-K = 36, Actual = 0
+283(110) 246(31) 193(16) 215(17)  - 0(14) 177(15) 0(0) 215(9) 0(0) 231(36) 

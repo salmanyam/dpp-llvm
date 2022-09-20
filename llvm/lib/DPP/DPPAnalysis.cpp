@@ -522,18 +522,21 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
 
         int count = 0;
         for(auto Item: DObjItems) {
-            if (count >= topk) break;
-            count++;
+          if (count >= topk)
+            break;
+          count++;
 
-	    auto LoadStorePtrs = getDataPointersToObject2(Item.Obj, svfg);
-            Result.FilteredInstructions.insert(LoadStorePtrs.begin(), LoadStorePtrs.end());
-            
-	    auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.Obj);
-            errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t" << Item.NumPointers << "\n";
-            dppLog += SVFNode->toString() + "\t" +
+          auto LoadStorePtrs = getDataPointersToObject2(Item.Obj, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item.Obj);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+            //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\t" +
                     to_string(Item.NumRulesFlagObj) + "\t" +
                     to_string(Item.NumPointers) + "\n";
-            dppLog += "--------------------------------------------------------------\n";
+          dppLog += "--------------------------------------------------------------\n";
         }
 
 /*
@@ -571,18 +574,18 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
 
         //errs() << "\nTOP-K = " + to_string(topk) + ", Actual = " + to_string(actual_objects) + "\n";
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
-        << Rule1Set.size() << "(" << Rule1Objects.size() << ") "
-        << Rule2Set.size() << "(" << Rule2Objects.size() << ") "
-        << Rule3Set.size() << "(" << Rule3Objects.size() << ") "
-        //        << Rule4Set.size() << "(" << Rule4Objects.size() << ") "
-        << " - "
-        << Rule5Set.size() << "(" << Rule5Objects.size() << ") "
-        << Rule6Set.size() << "(" << Rule6Objects.size() << ") "
-        << Rule7Set.size() << "(" << Rule7Objects.size() << ") "
-        << Rule8Set.size() << "(" << Rule8Objects.size() << ") "
-        << Rule9Set.size() << "(" << Rule9Objects.size() << ") "
-        << CombinedSet.size() << "(" << CombinedObjects.size() << ") " << "\n";
+        //errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        //<< Rule1Set.size() << "(" << Rule1Objects.size() << ") "
+        //<< Rule2Set.size() << "(" << Rule2Objects.size() << ") "
+        //<< Rule3Set.size() << "(" << Rule3Objects.size() << ") "
+        // //        << Rule4Set.size() << "(" << Rule4Objects.size() << ") "
+        //<< " - "
+        //<< Rule5Set.size() << "(" << Rule5Objects.size() << ") "
+        //<< Rule6Set.size() << "(" << Rule6Objects.size() << ") "
+        //<< Rule7Set.size() << "(" << Rule7Objects.size() << ") "
+        //<< Rule8Set.size() << "(" << Rule8Objects.size() << ") "
+        //<< Rule9Set.size() << "(" << Rule9Objects.size() << ") "
+        //<< CombinedSet.size() << "(" << CombinedObjects.size() << ") " << "\n";
 
         dppLog += "\nTOP-K = " + to_string(topk) + ", Actual = " + to_string(/*actual_objects*/0) + "\n"
                 + to_string(totalDataPointers.size()) + "(" + to_string(totalDataObjects) + ") "
@@ -610,7 +613,8 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
             dppLog += "--------------------------------------------------------------\n";
         }*/
 
-        DPP::writeDPPLogsToFile(dppLog);
+        //DPP::writeDPPLogsToFile(dppLog);
+        errs() << dppLog << "\n";
     }
 
     return Result;

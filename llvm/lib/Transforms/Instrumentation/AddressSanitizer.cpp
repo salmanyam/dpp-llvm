@@ -2759,7 +2759,7 @@ bool AddressSanitizer::instrumentFunction(Function &F,
       /// if enabled, consider only the filtered instructions
       if (ClEnableDPP){
           if (FilteredInsts.find(&Inst) != FilteredInsts.end()) {
-              errs() << "Found Instruction = " << Inst << "\n";
+              //errs() << "Found Instruction = " << Inst << "\n";
               getInterestingMemoryOperands(&Inst, InterestingOperands);
           }
       }else {
