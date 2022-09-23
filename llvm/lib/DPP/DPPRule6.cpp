@@ -176,6 +176,8 @@ DPPRule6G::Result DPPRule6G::run(Module &M, AnalysisManager<Module> &AM) {
     for (auto Item: AlreadyCovered) {
         Result.PrioritizedPtrMap.try_emplace(Item, 1);
     }
+    
+    errs() << "Rule6 done...\n";
 
     return Result;
 }

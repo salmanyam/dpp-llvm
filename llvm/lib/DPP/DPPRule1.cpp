@@ -819,6 +819,8 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
 
     //dppLog += "##################################################\n\n\n";
     //DPP::writeDPPLogsToFile(dppLog);
+    
+    errs() << "Rule1 done...\n";
 
     return Result;
 }

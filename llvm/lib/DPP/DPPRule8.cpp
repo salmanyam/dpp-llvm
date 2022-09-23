@@ -367,6 +367,8 @@ DPPRule8G::Result DPPRule8G::run(Module &M, AnalysisManager<Module> &AM) {
 
     //errs() << "Rule 8 = " << Result.PrioritizedPtrMap.size() << ", Filtered = "
     //<< FilteredObjs.PrioritizedPtrMap.size() << "\n";
+    
+    errs() << "Rule8 done...\n";
 
     return Result;
 }

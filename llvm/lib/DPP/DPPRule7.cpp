@@ -89,17 +89,15 @@ bool DPPRule7G::HasUnsafeCasting(const Instruction * I, Module &M) {
         Type *srcType = bitCast->getSrcTy();
         Type *dstType = bitCast->getDestTy();
 
-        //errs() << *DstTy << " " << *srcType << " " << *dstType << "\n";
+        //errs() << *DstTy << "\n" << *srcType << "\n" << *dstType << "\n";
 
         if (!dstType->isPointerTy())
             return false;
-
-        if (dstType->getContainedType(0)->isIntegerTy())
             return false;
 
         if (srcType->isPointerTy() && srcType->getContainedType(0)->isIntegerTy())
             return false;
-
+	
         if (srcType == dstType)
             return false;
 
@@ -109,6 +107,25 @@ bool DPPRule7G::HasUnsafeCasting(const Instruction * I, Module &M) {
         /// 1) check the sizes
         //todo:%25 = bitcast i32 (...)* %21 to i32 (%struct.connection*, %struct.plugin_data_base*, ...)*, !dbg !14330
         //check if function pointer may be??
+	
+	std::string type_str_src;
+        llvm::raw_string_ostream rso_src(type_str_src);
+        srcType->getContainedType(0)->print(rso_src);
+
+        if (rso_src.str().find("i32 (") != std::string::npos)
+	    return false;
+	
+	std::string type_str_dst;
+        llvm::raw_string_ostream rso_dst(type_str_dst);
+        dstType->getContainedType(0)->print(rso_dst);
+
+        if (rso_dst.str().find("i32 (") != std::string::npos)
+	    return false;
+        
+	
+	//errs() << *srcType->getContainedType(0) << "\n";
+	//errs() << *dstType->getContainedType(0) << "\n";
+
         auto srcContainedTypeSize = M.getDataLayout().getTypeAllocSizeInBits(srcType->getContainedType(0));
         auto dstContainedTypeSize = M.getDataLayout().getTypeAllocSizeInBits(dstType->getContainedType(0));
 
@@ -193,6 +210,8 @@ DPPRule7G::Result DPPRule7G::run(Module &M, AnalysisManager<Module> &AM) {
         Result.PrioritizedPtrMap.try_emplace(Item, 1);
     }
 
+    //errs() << "Rule7 done...\n";
+    
     return Result;
 }
 

@@ -167,6 +167,8 @@ DPPRule5G::Result DPPRule5G::run(Module &M, AnalysisManager<Module> &AM) {
     dppLog += "##################################################\n\n\n";
     if (DPP::isLogIndividualRule())
         DPP::writeDPPLogsToFile(dppLog);
+    
+    errs() << "Rule5 done...\n";
 
     return Result;
 }

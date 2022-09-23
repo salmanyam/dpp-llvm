@@ -139,8 +139,7 @@ bool DPPRule3G::CheckInstInLoopLatch(Loop *L, const Instruction *I) {
 }
 
 bool DPPRule3G::CheckUsageOfDPInstInLoop(const Instruction *I, LoopSet LS) {
-    bool result = false;
-
+    //bool result = false;
     for (auto L: LS) {
         /// skip to next loop if the loop does not contain the instruction
         if (! L->contains(I))
@@ -149,21 +148,31 @@ bool DPPRule3G::CheckUsageOfDPInstInLoop(const Instruction *I, LoopSet LS) {
         /// check the existence of the instruction in loop header and latch
         //errs() << "Check header\n";
         bool existInHeader = CheckInstInLoopHeader(L, I);
+	
+	if (existInHeader) 
+	    return true;
 
         //errs() << "Check latch\n";
         bool existInLatch = CheckInstInLoopLatch(L, I);
+	
+	if (existInLatch)
+	    return true;
 
         //errs() << "Check predecessor\n";
         bool existInPredecessor = CheckInstInLoopPredecessor(L, I);
+	
+	if (existInPredecessor)
+	    return true;
 
         //errs() << "pred: " << existInPredecessor << " header: " << existInHeader << " latch: " << existInLatch << "\n";
-        result = existInHeader | existInLatch | existInPredecessor;
+        //result = existInHeader | existInLatch | existInPredecessor;
 
-        if (result)
-            return result;
+        //if (result)
+          //  return result;
     }
 
-    return result;
+    //return result;
+    return false;
 }
 
 DPPRule3G::LoopSet DPPRule3G::TraverseLoops(LoopInfo &Loops) {
@@ -280,6 +289,8 @@ DPPRule3G::Result DPPRule3G::run(Module &M, AnalysisManager<Module> &AM) {
         Result.PrioritizedPtrMap.try_emplace(Item, 1);
     }
 
+    errs() << "Rule3 done...\n";
+    
     return Result;
 }
 

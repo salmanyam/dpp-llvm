@@ -146,6 +146,8 @@ DPPRule2G::Result DPPRule2G::run(Module &M, AnalysisManager<Module> &AM) {
         Result.PrioritizedPtrMap.try_emplace(Item, 1);
     }
 
+    errs() << "Rule2 done...\n";
+
     return Result;
 }
 

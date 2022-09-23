@@ -522,6 +522,8 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
     if (DPP::isLogIndividualRule())
         DPP::writeDPPLogsToFile(dppLog);
 
+    errs() << "Rule9 done...\n";
+    
     return Result;
 }
 
