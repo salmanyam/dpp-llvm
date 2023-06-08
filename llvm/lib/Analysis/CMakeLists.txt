@@ -137,8 +137,8 @@ add_llvm_component_library(LLVMAnalysis
 
   LINK_LIBS
   ${MLLinkDeps}
+  Svf
   DPP
-  #Svf
 
   LINK_COMPONENTS
   BinaryFormat
