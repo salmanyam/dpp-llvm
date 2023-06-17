@@ -184,7 +184,7 @@ static const unsigned kAllocaRzSize = 32;
 
 static cl::opt<bool> ClEnableDPP(
         "asan-dpp", cl::desc("Enable DPP filtered instrumentation"),
-        cl::Hidden, cl::init(true));
+        cl::Hidden, cl::init(false));
 
 static cl::opt<bool> ClEnableKasan(
     "asan-kernel", cl::desc("Enable KernelAddressSanitizer instrumentation"),
@@ -735,6 +735,7 @@ public:
     AddressSanitizer ASan(*F.getParent(), &GlobalsMD, CompileKernel, Recover,
                           UseAfterScope);
     DenseSet<const Value *> FilteredInsts; //dummy and empty data for function signature matching
+
     return ASan.instrumentFunction(F, TLI, FilteredInsts);
   }
 
@@ -925,7 +926,7 @@ struct FunctionStackPoisoner : public InstVisitor<FunctionStackPoisoner> {
         IntptrPtrTy(PointerType::get(IntptrTy, 0)), Mapping(ASan.Mapping),
         StackAlignment(1 << Mapping.Scale) {}
 
-  bool runOnFunction() {
+  bool runOnFunction(DenseSet<const Value *> &FilteredInsts) {
     if (!ClStack) return false;
 
     if (ClRedzoneByvalArgs)
@@ -944,6 +945,68 @@ struct FunctionStackPoisoner : public InstVisitor<FunctionStackPoisoner> {
       // therefore should "fail safe" by not poisoning them.
       StaticAllocaPoisonCallVec.clear();
       DynamicAllocaPoisonCallVec.clear();
+    }
+
+    /// FIXME: enabling dpp here may cause occasional crashes, it it requires fix!
+    if (/*ClEnableDPP*/false) {
+      SmallVector<AllocaInst *, 16> TmpAllocaVec;
+      SmallVector<AllocaInst *, 16> TmpDynamicAllocaVec;
+
+      SmallVector<AllocaPoisonCall, 8> TmpDynamicAllocaPoisonCallVec;
+      SmallVector<AllocaPoisonCall, 8> TmpStaticAllocaPoisonCallVec;
+
+      for (auto MAllocaInst : AllocaVec) {
+        // errs() << *MAllocaInst << "\n";
+        if (FilteredInsts.find(MAllocaInst) != FilteredInsts.end()) {
+          //errs() << "Found Alloca in FSP 1 = " << *MAllocaInst << "\n";
+          TmpAllocaVec.push_back(MAllocaInst);
+        }
+      }
+
+      for (auto MAllocaInst : DynamicAllocaVec) {
+        // errs() << *MAllocaInst << "\n";
+        if (FilteredInsts.find(MAllocaInst) != FilteredInsts.end()) {
+          //errs() << "Found Alloca in FSP 2 = " << *MAllocaInst << "\n";
+          TmpDynamicAllocaVec.push_back(MAllocaInst);
+        }
+      }
+
+      for (auto MAllocaInst : DynamicAllocaPoisonCallVec) {
+        // errs() << *MAllocaInst << "\n";
+        if (FilteredInsts.find(MAllocaInst.AI) != FilteredInsts.end()) {
+          //errs() << "Found Alloca in FSP 3 = " << *MAllocaInst.AI << "\n";
+          TmpDynamicAllocaPoisonCallVec.push_back(MAllocaInst);
+        }
+      }
+
+      for (auto MAllocaInst : StaticAllocaPoisonCallVec) {
+        // errs() << *MAllocaInst << "\n";
+        if (FilteredInsts.find(MAllocaInst.AI) != FilteredInsts.end()) {
+          //errs() << "Found Alloca in FSP 4 = " << *MAllocaInst.AI << "\n";
+          TmpStaticAllocaPoisonCallVec.push_back(MAllocaInst);
+        }
+      }
+
+      AllocaVec.clear();
+      DynamicAllocaVec.clear();
+      DynamicAllocaPoisonCallVec.clear();
+      StaticAllocaPoisonCallVec.clear();
+
+      for (auto MAllocaInst : TmpAllocaVec) {
+        AllocaVec.push_back(MAllocaInst);
+      }
+
+      for (auto MAllocaInst : TmpDynamicAllocaVec) {
+        DynamicAllocaVec.push_back(MAllocaInst);
+      }
+
+      for (auto MAllocaInst : TmpDynamicAllocaPoisonCallVec) {
+        DynamicAllocaPoisonCallVec.push_back(MAllocaInst);
+      }
+
+      for (auto MAllocaInst : TmpStaticAllocaPoisonCallVec) {
+        StaticAllocaPoisonCallVec.push_back(MAllocaInst);
+      }
     }
 
     processDynamicAllocas();
@@ -1184,6 +1247,7 @@ PreservedAnalyses AddressSanitizerPass::run(Function &F,
     const TargetLibraryInfo *TLI = &AM.getResult<TargetLibraryAnalysis>(F);
     AddressSanitizer Sanitizer(M, R, CompileKernel, Recover, UseAfterScope);
     DenseSet<const Value *> FilteredInsts; //dummy and empty data for function signature matching
+    //errs() << "Is ASAN running here....\n";
     if (Sanitizer.instrumentFunction(F, TLI, FilteredInsts))
       return PreservedAnalyses::none();
     return PreservedAnalyses::all();
@@ -2302,6 +2366,7 @@ bool ModuleAddressSanitizer::InstrumentGlobals(IRBuilder<> &IRB, Module &M,
                   GlobalsToChange.push_back(&G);
               }
           } else {
+            //errs() << "ASAN Found global = " << G << "\n";
               GlobalsToChange.push_back(&G);
           }
       }
@@ -2517,7 +2582,6 @@ int ModuleAddressSanitizer::GetAsanVersion(const Module &M) const {
 
 bool ModuleAddressSanitizer::instrumentModule(Module &M, DenseSet<const Value *> &FilteredInsts) {
   initializeCallbacks(M);
-
   // Create a module constructor. A destructor is created lazily because not all
   // platforms, and not all modules need it.
   if (CompileKernel) {
@@ -2727,6 +2791,7 @@ bool AddressSanitizer::instrumentFunction(Function &F,
   if (!F.hasFnAttribute(Attribute::SanitizeAddress)) return FunctionModified;
 
   LLVM_DEBUG(dbgs() << "ASAN instrumenting:\n" << F << "\n");
+  //errs() << "DPP filter size = " << FilteredInsts.size() << "\n";
 
   initializeCallbacks(*F.getParent());
 
@@ -2763,7 +2828,7 @@ bool AddressSanitizer::instrumentFunction(Function &F,
               getInterestingMemoryOperands(&Inst, InterestingOperands);
           }
       }else {
-	  //errs() << "ASAN Found Instruction = " << Inst << "\n";
+	      //errs() << "ASAN Found Instruction = " << Inst << "\n";
           getInterestingMemoryOperands(&Inst, InterestingOperands);
       }
 
@@ -2790,21 +2855,52 @@ bool AddressSanitizer::instrumentFunction(Function &F,
                   isInterestingPointerComparison(&Inst)) ||
                  ((ClInvalidPointerPairs || ClInvalidPointerSub) &&
                   isInterestingPointerSubtraction(&Inst))) {
-        PointerComparisonsOrSubtracts.push_back(&Inst);
+        if (ClEnableDPP) {
+          if (FilteredInsts.find(&Inst) != FilteredInsts.end()) {
+            //errs() << "Comp Found Instruction = " << Inst << "\n";
+            PointerComparisonsOrSubtracts.push_back(&Inst);
+          }
+        }else
+          PointerComparisonsOrSubtracts.push_back(&Inst);
       } else if (MemIntrinsic *MI = dyn_cast<MemIntrinsic>(&Inst)) {
-        // ok, take it.
-        IntrinToInstrument.push_back(MI);
-        NumInsnsPerBB++;
-      } else {
-        if (isa<AllocaInst>(Inst)) NumAllocas++;
-        if (auto *CB = dyn_cast<CallBase>(&Inst)) {
-          // A call inside BB.
-          TempsToInstrument.clear();
-          if (CB->doesNotReturn() && !CB->hasMetadata("nosanitize"))
-            NoReturnCalls.push_back(CB);
+        if (ClEnableDPP) {
+          if (FilteredInsts.find(&Inst) != FilteredInsts.end()) {
+            //errs() << "MeM Found Instruction = " << Inst << "\n";
+            // ok, take it.
+            IntrinToInstrument.push_back(MI);
+            NumInsnsPerBB++;
+          }
+        }else {
+          IntrinToInstrument.push_back(MI);
+          NumInsnsPerBB++;
         }
-        if (CallInst *CI = dyn_cast<CallInst>(&Inst))
-          maybeMarkSanitizerLibraryCallNoBuiltin(CI, TLI);
+      } else {
+        if (ClEnableDPP) {
+          if (FilteredInsts.find(&Inst) != FilteredInsts.end()) {
+            //errs() << "Maybe Found Instruction = " << Inst << "\n";
+            if (isa<AllocaInst>(Inst))
+              NumAllocas++;
+            if (auto *CB = dyn_cast<CallBase>(&Inst)) {
+              // A call inside BB.
+              TempsToInstrument.clear();
+              if (CB->doesNotReturn() && !CB->hasMetadata("nosanitize"))
+                NoReturnCalls.push_back(CB);
+            }
+            if (CallInst *CI = dyn_cast<CallInst>(&Inst))
+              maybeMarkSanitizerLibraryCallNoBuiltin(CI, TLI);
+          }
+        }else {
+          if (isa<AllocaInst>(Inst))
+            NumAllocas++;
+          if (auto *CB = dyn_cast<CallBase>(&Inst)) {
+            // A call inside BB.
+            TempsToInstrument.clear();
+            if (CB->doesNotReturn() && !CB->hasMetadata("nosanitize"))
+              NoReturnCalls.push_back(CB);
+          }
+          if (CallInst *CI = dyn_cast<CallInst>(&Inst))
+            maybeMarkSanitizerLibraryCallNoBuiltin(CI, TLI);
+        }
       }
       if (NumInsnsPerBB >= ClMaxInsnsToInstrumentPerBB) break;
     }
@@ -2821,19 +2917,23 @@ bool AddressSanitizer::instrumentFunction(Function &F,
   // Instrument.
   int NumInstrumented = 0;
   for (auto &Operand : OperandsToInstrument) {
-    if (!suppressInstrumentationSiteForDebug(NumInstrumented))
+    if (!suppressInstrumentationSiteForDebug(NumInstrumented)) {
+      //errs() << "instrumenting operand\n";
       instrumentMop(ObjSizeVis, Operand, UseCalls,
                     F.getParent()->getDataLayout());
+    }
     FunctionModified = true;
   }
   for (auto Inst : IntrinToInstrument) {
-    if (!suppressInstrumentationSiteForDebug(NumInstrumented))
+    if (!suppressInstrumentationSiteForDebug(NumInstrumented)) {
+      //errs() << "Mem intrinsic instrument\n";
       instrumentMemIntrinsic(Inst);
+    }
     FunctionModified = true;
   }
 
   FunctionStackPoisoner FSP(F, *this);
-  bool ChangedStack = FSP.runOnFunction();
+  bool ChangedStack = FSP.runOnFunction(FilteredInsts);
 
   // We must unpoison the stack before NoReturn calls (throw, _exit, etc).
   // See e.g. https://github.com/google/sanitizers/issues/37
@@ -2843,6 +2943,7 @@ bool AddressSanitizer::instrumentFunction(Function &F,
   }
 
   for (auto Inst : PointerComparisonsOrSubtracts) {
+    //errs() << "Interesting pointer comparison\n";
     instrumentPointerComparisonOrSubtraction(Inst);
     FunctionModified = true;
   }
