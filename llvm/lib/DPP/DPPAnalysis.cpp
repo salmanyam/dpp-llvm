@@ -630,7 +630,7 @@ PreservedAnalyses DPPAnalysisPrinterPass::run(Module &M, AnalysisManager<Module>
 }
 
 raw_ostream &DPPAnalysisResult::print(raw_ostream &OS) const {
-    OS << "DPP Analysis:\n";
+    //OS << "DPP Analysis:\n";
 
     return OS;
 }
