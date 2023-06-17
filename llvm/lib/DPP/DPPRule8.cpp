@@ -2,6 +2,8 @@
 // Created by salman on 7/13/21.
 //
 
+#include <chrono>
+
 #include "llvm/DPP/SVFInitPass.h"
 #include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule8.h"
@@ -120,8 +122,7 @@ bool DPPRule8L::ignoreAccess(Value *Ptr) {
 }
 
 
-void DPPRule8L::getInterestingMemoryOperands(
-        Instruction *I, SmallVectorImpl<InterestingMemoryOperand> &Interesting) {
+void DPPRule8L::getInterestingMemoryOperands(Instruction *I, SmallVectorImpl<InterestingMemoryOperand> &Interesting) {
     // Skip memory accesses inserted by another instrumentation.
     //if (I->hasMetadata("nosanitize"))
     //    return;
@@ -133,11 +134,17 @@ void DPPRule8L::getInterestingMemoryOperands(
     if (LoadInst *LI = dyn_cast<LoadInst>(I)) {
         if (ignoreAccess(LI->getPointerOperand()))
             return;
+        //if (!isDataPointer(LI->getPointerOperandType()->getPointerElementType()))
+          //  return;
+
         Interesting.emplace_back(I, LI->getPointerOperandIndex(), false,
                                  LI->getType(), LI->getAlign());
     } else if (StoreInst *SI = dyn_cast<StoreInst>(I)) {
         if (ignoreAccess(SI->getPointerOperand()))
             return;
+        //if (!isDataPointer(SI->getPointerOperandType()->getPointerElementType()))
+          //  return;
+
         Interesting.emplace_back(I, SI->getPointerOperandIndex(), true,
                                  SI->getValueOperand()->getType(), SI->getAlign());
     } else if (AtomicRMWInst *RMW = dyn_cast<AtomicRMWInst>(I)) {
@@ -260,6 +267,9 @@ DPPRule8L::Result DPPRule8L::run(Function &F, AnalysisManager<Function> &AM) {
         }
     }
 
+    //errs() << "Current function = " << F.getName()
+    //       << " Number of operand instrumenting = " << OperandsToInstrument.size() << "\n";
+
     const TargetLibraryInfo *TLI = &AM.getResult<TargetLibraryAnalysis>(F);
     const DataLayout &DL = F.getParent()->getDataLayout();
         ObjectSizeOpts ObjSizeOpts;
@@ -307,6 +317,10 @@ const VFGNode* DPPRule8G::getVFGNodeFromValue(PAG *pag, SVFG *svfg, const Value 
 DPPRule8G::Result DPPRule8G::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration;
+    duration<double, std::milli> runtime_ms;
+
     auto R = AM.getResult<SVFInitPass>(M);
 
     PAG *pag = R.SVFParams.pag;
@@ -315,8 +329,11 @@ DPPRule8G::Result DPPRule8G::run(Module &M, AnalysisManager<Module> &AM) {
 
     LLVM_DEBUG(dbgs() << "Starting rule 8...\n");
 
-    auto WhiteListResult = AM.getResult<DPPWhiteList>(M);
     auto FilteredObjs = AM.getResult<DPPRule1G>(M);
+
+    auto t1 = high_resolution_clock::now();
+
+    auto WhiteListResult = AM.getResult<DPPWhiteList>(M);
 
     // Collect the local results into our Result object
     auto &FAM = AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
@@ -361,14 +378,19 @@ DPPRule8G::Result DPPRule8G::run(Module &M, AnalysisManager<Module> &AM) {
         }
     }
 
+    auto t2 = high_resolution_clock::now();
+
     dppLog += "##################################################\n\n\n";
     if (DPP::isLogIndividualRule())
         DPP::writeDPPLogsToFile(dppLog);
 
     //errs() << "Rule 8 = " << Result.PrioritizedPtrMap.size() << ", Filtered = "
     //<< FilteredObjs.PrioritizedPtrMap.size() << "\n";
-    
-    errs() << "Rule8 done...\n";
+
+    runtime_ms = t2 - t1;
+
+    std::cout.precision(2);
+    std::cout << "Rule8 done...time taken = " << std::fixed << runtime_ms.count()/1000 << "\n";
 
     return Result;
 }

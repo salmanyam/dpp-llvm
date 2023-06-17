@@ -3,6 +3,7 @@
 //
 
 #include <queue>
+#include <chrono>
 
 #include "llvm/DPP/SVFInitPass.h"
 #include "llvm/DPP/DPPUtils.h"
@@ -328,6 +329,10 @@ auto DPPRule9G::getCmpInstructions(const ICFGNode *icfgNode) {
 DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration;
+    duration<double, std::milli> runtime_ms;
+
     auto R = AM.getResult<SVFInitPass>(M);
 
     LLVM_DEBUG(dbgs() << "Starting rule 9...\n");
@@ -338,6 +343,7 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
 
     LLVM_DEBUG(dbgs() << "Finding the allocation sites...\n");
 
+    auto t1 = high_resolution_clock::now();
 
     Set<const SVFGNode*> SVFGAllocationNodeSet;
     for(PAG::CSToRetMap::iterator it = pag->getCallSiteRets().begin(),
@@ -467,7 +473,11 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
 
     LLVM_DEBUG(dbgs() << "Checking the whether the allocation sites are bounded or not...\n");
 
+    auto t2 = high_resolution_clock::now();
+
     auto TaintedNodes = AM.getResult<DPPRule1G>(M);
+
+    auto t3 = high_resolution_clock::now();
 
     /// write some logs to file
     string dppLog = "#################### RULE 9 #########################\n";
@@ -518,11 +528,16 @@ DPPRule9G::Result DPPRule9G::run(Module &M, AnalysisManager<Module> &AM) {
         }
     }
 
+    auto t4 = high_resolution_clock::now();
+
     dppLog += "##################################################\n\n\n";
     if (DPP::isLogIndividualRule())
         DPP::writeDPPLogsToFile(dppLog);
 
-    errs() << "Rule9 done...\n";
+    runtime_ms = (t2 - t1) + (t4 - t3);
+
+    std::cout.precision(2);
+    std::cout << "Rule9 done...time taken = " << std::fixed << runtime_ms.count()/1000 << "\n";
     
     return Result;
 }

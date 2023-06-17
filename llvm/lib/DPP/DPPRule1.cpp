@@ -3,6 +3,7 @@
 //
 #include <queue>
 #include "set"
+#include <chrono>
 
 #include "llvm/DPP/SVFInitPass.h"
 #include "llvm/DPP/DPPRule1.h"
@@ -293,11 +294,17 @@ void DPPRule1G::updateTaintList(SVFG *svfg, const VFGNode* arg_vNode) {
 DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result{};
 
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration;
+    duration<double, std::milli> runtime_ms;
+
     auto R = AM.getResult<SVFInitPass>(M);
 
     PAG *pag = R.SVFParams.pag;
     PTACallGraph *CallGraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
+
+    auto t1 = high_resolution_clock::now();
 
     Rule1Init();
 
@@ -858,7 +865,12 @@ DPPRule1G::Result DPPRule1G::run(Module &M, AnalysisManager<Module> &AM) {
     //dppLog += "##################################################\n\n\n";
     //DPP::writeDPPLogsToFile(dppLog);
 
-    errs() << "Rule1 done...\n";
+    auto t2 = high_resolution_clock::now();
+
+    runtime_ms = t2 - t1;
+
+    std::cout.precision(2);
+    std::cout << "Rule1 done...time taken = " << std::fixed << runtime_ms.count()/1000 << "\n";
 
     return Result;
 }

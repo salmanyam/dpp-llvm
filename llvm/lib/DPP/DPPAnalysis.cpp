@@ -187,7 +187,7 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
 
         totalDataPointers.insert(Rule1Set.begin(), Rule1Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule1Set.size() << "(" << Rule1Result.PrioritizedPtrMap.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule2") == 0) {
@@ -200,12 +200,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule2Set = getDataPointersToObjects(Rule2Result.PrioritizedPtrMap, svfg);
         auto Rule2Objects = getDataObjects(Rule2Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule2Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule2Set.begin(), Rule2Set.end());
 
         totalDataPointers.insert(Rule2Set.begin(), Rule2Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule2Set.size() << "(" << Rule2Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule3") == 0) {
@@ -218,12 +233,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule3Set = getDataPointersToObjects(Rule3Result.PrioritizedPtrMap, svfg);
         auto Rule3Objects = getDataObjects(Rule3Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule3Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule3Set.begin(), Rule3Set.end());
 
         totalDataPointers.insert(Rule3Set.begin(), Rule3Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule3Set.size() << "(" << Rule3Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule4") == 0) {
@@ -236,12 +266,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule4Set = getDataPointersToObjects(Rule4Result.PrioritizedPtrMap, svfg);
         auto Rule4Objects = getDataObjects(Rule4Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule4Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule4Set.begin(), Rule4Set.end());
 
         totalDataPointers.insert(Rule4Set.begin(), Rule4Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule4Set.size() << "(" << Rule4Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule5") == 0) {
@@ -249,12 +294,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule5Set = getDataPointersToObjects(Rule5Result.PrioritizedPtrMap, svfg);
         auto Rule5Objects = getDataObjects(Rule5Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule5Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule5Set.begin(), Rule5Set.end());
 
         totalDataPointers.insert(Rule5Set.begin(), Rule5Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule5Set.size() << "(" << Rule5Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule6") == 0) {
@@ -267,12 +327,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule6Set = getDataPointersToObjects(Rule6Result.PrioritizedPtrMap, svfg);
         auto Rule6Objects = getDataObjects(Rule6Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule6Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule6Set.begin(), Rule6Set.end());
 
         totalDataPointers.insert(Rule6Set.begin(), Rule6Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule6Set.size() << "(" << Rule6Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule7") == 0) {
@@ -285,12 +360,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule7Set = getDataPointersToObjects(Rule7Result.PrioritizedPtrMap, svfg);
         auto Rule7Objects = getDataObjects(Rule7Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule7Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule7Set.begin(), Rule7Set.end());
 
         totalDataPointers.insert(Rule7Set.begin(), Rule7Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule7Set.size() << "(" << Rule7Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule8") == 0) {
@@ -304,12 +394,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule8Set = getDataPointersToObjects(Rule8Result.PrioritizedPtrMap, svfg);
         auto Rule8Objects = getDataObjects(Rule8Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule8Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule8Set.begin(), Rule8Set.end());
 
         totalDataPointers.insert(Rule8Set.begin(), Rule8Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule8Set.size() << "(" << Rule8Objects.size() << ") " << "\n";
     }
     else if (ruleNum.compare("rule9") == 0) {
@@ -322,12 +427,27 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
         auto Rule9Set = getDataPointersToObjects(Rule9Result.PrioritizedPtrMap, svfg);
         auto Rule9Objects = getDataObjects(Rule9Result.PrioritizedPtrMap);
 
+        string  dppLog = "";
+
+        for(auto Item: Rule9Objects) {
+          auto LoadStorePtrs = getDataPointersToObject2(Item, svfg);
+          Result.FilteredInstructions.insert(LoadStorePtrs.begin(),
+                                             LoadStorePtrs.end());
+
+          auto SVFNode = getVFGNodeFromValue(pag, svfg, Item);
+          //errs() << SVFNode->toString() << "\t" << Item.NumRulesFlagObj << "\t"
+          //     << Item.NumPointers << "\n";
+          dppLog += SVFNode->toString() + "\n";
+          dppLog += "--------------------------------------------------------------\n";
+        }
+        errs() << dppLog << "\n";
+
         /// store the load/store instructions in result
         Result.FilteredInstructions.insert(Rule9Set.begin(), Rule9Set.end());
 
         totalDataPointers.insert(Rule9Set.begin(), Rule9Set.end());
 
-        errs() << totalDataPointers.size() << "(" << totalDataObjects << ") "
+        errs() << ruleNum << ":: " << totalDataPointers.size() << "(" << totalDataObjects << ") "
         << Rule9Set.size() << "(" << Rule9Objects.size() << ") " << "\n";
     }
     else {
@@ -468,7 +588,7 @@ DPPAnalysis::Result DPPAnalysis::run(Module &M, AnalysisManager<Module> &AM) {
                 }
             }
 
-            if (Rule8Objects.contains(DObj)) {
+           if (Rule8Objects.contains(DObj)) {
                 if (DObjRanks.find(DObj) != DObjRanks.end()) {
                     auto rank = DObjRanks.lookup(DObj);
                     DObjRanks.erase(DObj);

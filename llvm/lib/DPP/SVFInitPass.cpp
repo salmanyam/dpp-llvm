@@ -1,6 +1,8 @@
 //
 // Created by salman on 7/26/21.
 //
+#include <chrono>
+#include <iostream>
 
 #include "llvm/DPP/SVFInitPass.h"
 
@@ -8,6 +10,9 @@
 #include "SVF-FE/LLVMUtil.h"
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/Andersen.h"
+//#include "WPA/Steensgaard.h"
+//#include "WPA/FlowSensitive.h"
+//#include "WPA/VersionedFlowSensitive.h"
 
 #define DEBUG_TYPE "SVFInitPass"
 
@@ -23,6 +28,12 @@ AnalysisKey SVFInitPass::Key;
 SVFInitPass::Result SVFInitPass::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration;
+    duration<double, std::milli> runtime_ms;
+
+    auto t1 = high_resolution_clock::now();
+
     SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(M);
     //svfModule->buildSymbolTableInfo();
 
@@ -32,6 +43,9 @@ SVFInitPass::Result SVFInitPass::run(Module &M, AnalysisManager<Module> &AM) {
 
     /// Create Andersen's pointer analysis
     Andersen* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
+    //Steensgaard* ander = Steensgaard::createSteensgaard(pag);
+    //FlowSensitive* ander = FlowSensitive::createFSWPA(pag);
+    //VersionedFlowSensitive * ander = VersionedFlowSensitive::createVFSWPA(pag);
 
     /// Call Graph
     PTACallGraph* callgraph = ander->getPTACallGraph();
@@ -40,7 +54,11 @@ SVFInitPass::Result SVFInitPass::run(Module &M, AnalysisManager<Module> &AM) {
     SVFGBuilder svfBuilder;
     SVFG* svfg = svfBuilder.buildFullSVFGWithoutOPT(ander);
 
-    errs() << "SVF Initialization Done\n";
+    auto t2 = high_resolution_clock::now();
+
+    runtime_ms = t2 - t1;
+    std::cout.precision(2);
+    std::cout << "SVF Initialization Done, time taken = " << std::fixed << runtime_ms.count()/1000 << "\n";
 
     Result.SVFParams.pag = pag;
     Result.SVFParams.CallGraph = callgraph;

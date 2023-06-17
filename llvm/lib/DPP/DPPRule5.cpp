@@ -11,6 +11,8 @@
 // through all GlobalValues.
 //===----------------------------------------------------------------------===//
 
+#include <chrono>
+
 #include "llvm/DPP/SVFInitPass.h"
 #include "llvm/DPP/DPPRule5.h"
 #include "llvm/DPP/TypeVisitor.h"
@@ -114,11 +116,17 @@ const VFGNode* DPPRule5G::getVFGNodeFromValue(PAG *pag, SVFG *svfg, const Value 
 DPPRule5G::Result DPPRule5G::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result{};
 
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration;
+    duration<double, std::milli> runtime_ms;
+
     auto R = AM.getResult<SVFInitPass>(M);
 
     PAG *pag = R.SVFParams.pag;
     PTACallGraph *CallGraph = R.SVFParams.CallGraph;
     SVFG *svfg = R.SVFParams.svfg;
+
+    auto t1 = high_resolution_clock::now();
 
     // Check if we got iffy global variables
     TypeChecker Checker{};
@@ -164,11 +172,16 @@ DPPRule5G::Result DPPRule5G::run(Module &M, AnalysisManager<Module> &AM) {
         }
     }
 
+    auto t2 = high_resolution_clock::now();
+
     dppLog += "##################################################\n\n\n";
     if (DPP::isLogIndividualRule())
         DPP::writeDPPLogsToFile(dppLog);
-    
-    errs() << "Rule5 done...\n";
+
+    runtime_ms = t2 - t1;
+
+    std::cout.precision(2);
+    std::cout << "Rule5 done...time taken = " << std::fixed << runtime_ms.count()/1000 << "\n";
 
     return Result;
 }

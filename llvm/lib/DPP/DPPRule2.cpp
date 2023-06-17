@@ -2,6 +2,8 @@
 // Created by salman on 7/1/21.
 //
 
+#include <chrono>
+
 #include "llvm/DPP/SVFInitPass.h"
 #include "llvm/DPP/DPPRule1.h"
 #include "llvm/DPP/DPPRule2.h"
@@ -82,6 +84,10 @@ ValSet DPPRule2G::GetCompleteUsers(const Value *Val, SVFG *svfg) {
 DPPRule2G::Result DPPRule2G::run(Module &M, AnalysisManager<Module> &AM) {
     Result Result {};
 
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration;
+    duration<double, std::milli> runtime_ms;
+
     auto R = AM.getResult<SVFInitPass>(M);
 
     PAG *pag = R.SVFParams.pag;
@@ -92,6 +98,8 @@ DPPRule2G::Result DPPRule2G::run(Module &M, AnalysisManager<Module> &AM) {
 
     //auto DPValues = DPP::GetDataPointerInstructions(svfg, false);
     auto TaintedObjects = AM.getResult<DPPRule1G>(M);
+
+    auto t1 = high_resolution_clock::now();
 
     /// store the users of a value to a map
     ValUserMap VUMap;
@@ -138,15 +146,20 @@ DPPRule2G::Result DPPRule2G::run(Module &M, AnalysisManager<Module> &AM) {
         }
     }
 
+    for (auto Item: AlreadyCovered) {
+      Result.PrioritizedPtrMap.try_emplace(Item, 1);
+    }
+
+    auto t2 = high_resolution_clock::now();
+
     dppLog += "##################################################\n\n\n";
     if (DPP::isLogIndividualRule())
         DPP::writeDPPLogsToFile(dppLog);
 
-    for (auto Item: AlreadyCovered) {
-        Result.PrioritizedPtrMap.try_emplace(Item, 1);
-    }
+    runtime_ms = t2 - t1;
 
-    errs() << "Rule2 done...\n";
+    std::cout.precision(2);
+    std::cout << "Rule2 done...time taken = " << std::fixed << runtime_ms.count()/1000 << "\n";
 
     return Result;
 }
